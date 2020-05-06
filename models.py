@@ -1,4 +1,9 @@
 import sqlite3
+# from flask import Flask
+# app = Flask(__name__)
+
+
+# from app import app
 
 class Schema:
     def __init__(self):
@@ -61,10 +66,11 @@ class Schema:
         exercise_id INTEGER  NOT NULL,
         workout_id INTEGER NOT NULL,
         repetition INTEGER NOT NULL,
-        order INTEGER NOT NULL,
+        _order INTEGER NOT NULL,
         weight INTEGER NOT NULL,
         unit TEXT NOT NULL,
         FOREIGN KEY (exercise_id) REFERENCES Exercises (id),
         FOREIGN KEY (workout_id) REFERENCES Workouts (id)
         );
         """
+        self.conn.execute(query)
