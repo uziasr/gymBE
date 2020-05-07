@@ -17,7 +17,7 @@ class User(db.Model):
     workouts = db.relationship('Workout', backref='user', lazy=True)
 
     def __repr__(self):
-        return f"User('{self.username}','{self.email}')"
+        return f"User('{self.user}','{self.email}')"
 
 
 class Muscle(db.Model):
