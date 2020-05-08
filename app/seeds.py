@@ -43,4 +43,4 @@ core_exercises = [
     ('scissor crunch', 11),  ('side plank', 11),  ('oblique v-up', 11),  ('russian twists', 11), ('bicycle kicks', 11),
     ('v-tuck', 11), ('superman', 11), ('mountain climber', 11)
 ]
-master_exercise = [*push_exercises, *pull_exercises, *core_exercises]
+master_exercise = [*push_exercises, *pull_exercises, *leg_exercises, *core_exercises]

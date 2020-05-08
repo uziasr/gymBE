@@ -3,6 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="72ecba67-c82e-4484-9444-cdb7a1b1749b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/gym.db3" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/gym_pal.db" beforeDir="false" afterPath="$PROJECT_DIR$/app/gym_pal.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/seeds.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/seeds.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -115,7 +118,7 @@
       <option name="presentableId" value="Default" />
       <updated>1588734879846</updated>
       <workItem from="1588734943435" duration="14012000" />
-      <workItem from="1588797333793" duration="15919000" />
+      <workItem from="1588797333793" duration="21906000" />
     </task>
     <servers />
   </component>
@@ -127,6 +130,10 @@
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
     <state x="2472" y="178" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588744141755" />
+    <state x="2634" y="323" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1588974275044">
+      <screen x="1920" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2634" y="323" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588974275044" />
     <state width="196" height="457" key="HiddenNamespacesPopup" timestamp="1588744129009">
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
@@ -135,9 +142,9 @@
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
     <state x="2576" y="344" key="com.intellij.ide.util.TipDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588797361925" />
-    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1588908563374">
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1588971751598">
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
-    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588908563374" />
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588971751598" />
   </component>
 </project>

@@ -16,9 +16,10 @@ class Muscle(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     name = db.Column(db.String(50), unique=True, nullable=False)
     exercises = db.relationship('Exercise', backref='exercises', lazy=True)
+    workouts = db.relationship('Workout', backref='workouts', lazy=True)
 
     def __repr__(self):
-        return f"Muscle_Group({self.id}, '{self.name}')"
+        return f"Muscle({self.id}, '{self.name}')"
 
 
 class Exercise(db.Model):
@@ -27,14 +28,19 @@ class Exercise(db.Model):
     muscle_id = db.Column(db.Integer, db.ForeignKey('muscle.id'), nullable=False)
 
 
+    def __repr__(self):
+        return f"Exercise('{self.name}')"
+
 class Workout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     muscle_group_id = db.Column(db.Integer, db.ForeignKey('muscle.id'), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
-    muscle_group = db.relationship('Muscle', backref='muscle_group', lazy=True)
+    workout_set = db.relationship('Sets', backref='workout_sets', lazy=True)
 
+    def __repr__(self):
+        return f"Workout({self.id}, user_id: {self.user_id}, {self.start_time})"
 
 class Sets(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,3 +51,14 @@ class Sets(db.Model):
     exercise_order = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Integer, nullable=False)
     unit = db.Column(db.String(15), nullable=False, default='lbs')
+
+    def __repr__(self):
+        return f"Sets({self.id}, weight: {self.weight}, repetition: {self.repetition}, exercise_order: {self.exercise_order}, order: {self.order})"
+
+class Workout_Muscle(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
+    muscle_group_id = db.Column(db.Integer, db.ForeignKey('muscle.id'), nullable=False)
+
+    def __repr__(self):
+        return f"Workout_Muscle(id: {self.id}, workout_id: {self.workout_id}, muscle_group_id: {self.muscle_group_id})"
