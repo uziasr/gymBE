@@ -1,4 +1,5 @@
 from app import app
+from app.models import Muscle
 
 sample_data = ['bill', 'is', 'the', 'best']
 major_muscle_group = ['Quadriceps', 'Hamstrings', 'Calves', 'Chest', 'Back', 'Shoulders', 'Triceps', 'Biceps',
@@ -17,3 +18,9 @@ def hello_name(name):
 @app.route('/hidden')
 def message():
     return " ".join(sample_data)
+
+@app.route('/muscles')
+def getMuscles():
+    muscles = Muscle.query.all()
+    muscles_list = [muscle.name for muscle in muscles]
+    return " ".join(muscles_list)
