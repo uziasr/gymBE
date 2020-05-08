@@ -13,7 +13,7 @@ class User(db.Model):
 
 
 class Muscle(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
     name = db.Column(db.String(50), unique=True, nullable=False)
     exercises = db.relationship('Exercise', backref='exercises', lazy=True)
 
