@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="72ecba67-c82e-4484-9444-cdb7a1b1749b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/app/seeds.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/gym_pal.db" beforeDir="false" afterPath="$PROJECT_DIR$/app/gym_pal.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/seeds.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/seeds.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -117,7 +115,7 @@
       <option name="presentableId" value="Default" />
       <updated>1588734879846</updated>
       <workItem from="1588734943435" duration="14012000" />
-      <workItem from="1588797333793" duration="9775000" />
+      <workItem from="1588797333793" duration="12265000" />
     </task>
     <servers />
   </component>
@@ -137,9 +135,9 @@
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
     <state x="2576" y="344" key="com.intellij.ide.util.TipDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588797361925" />
-    <state x="2543" y="225" key="search.everywhere.popup" timestamp="1588736054568">
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1588908563374">
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
-    <state x="2543" y="225" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588736054568" />
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588908563374" />
   </component>
 </project>
