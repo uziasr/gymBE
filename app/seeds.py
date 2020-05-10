@@ -1,3 +1,6 @@
+from app.models import Muscle, Exercise
+from app import db
+
 major_muscle_group = ['Quadriceps', 'Hamstrings',
                       'Calves', 'Chest',
                       'Back', 'Shoulders',
@@ -43,4 +46,14 @@ core_exercises = [
     ('scissor crunch', 11),  ('side plank', 11),  ('oblique v-up', 11),  ('russian twists', 11), ('bicycle kicks', 11),
     ('v-tuck', 11), ('superman', 11), ('mountain climber', 11)
 ]
-master_exercise = [*push_exercises, *pull_exercises, *leg_exercises, *core_exercises]
+master_exercises = [*push_exercises, *pull_exercises, *leg_exercises, *core_exercises]
+
+def seed_muscles():
+    for muscle in major_muscle_group:
+        db.session.add(Muscle(name=muscle))
+        db.session.commit()
+
+def seed_exercises():
+    for exercise in master_exercises:
+        db.session.add(Exercise(name=exercise[0], muscle_id=exercise[1]))
+

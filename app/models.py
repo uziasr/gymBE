@@ -34,7 +34,6 @@ class Exercise(db.Model):
 class Workout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    muscle_group_id = db.Column(db.Integer, db.ForeignKey('muscle.id'), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
     workout_set = db.relationship('Sets', backref='workout_sets', lazy=True)
