@@ -16,7 +16,6 @@ class Muscle(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     name = db.Column(db.String(50), unique=True, nullable=False)
     exercises = db.relationship('Exercise', backref='exercises', lazy=True)
-    workouts = db.relationship('Workout', backref='workouts', lazy=True)
 
     def __repr__(self):
         return f"Muscle({self.id}, '{self.name}')"
