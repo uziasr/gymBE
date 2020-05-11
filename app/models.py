@@ -9,7 +9,7 @@ class User(db.Model):
     workouts = db.relationship('Workout', backref='user', lazy=True)
 
     def __repr__(self):
-        return f"User('{self.name}','{self.email}')"
+        return f"User('{self.id}' {self.name}','{self.email}')"
 
 
 class Muscle(db.Model):
@@ -35,23 +35,28 @@ class Workout(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
-    workout_set = db.relationship('Sets', backref='workout_sets', lazy=True)
+    workout_exercise = db.relationship('Workout_Exercise', backref='workout_exercise', lazy=True)
+
 
     def __repr__(self):
         return f"Workout({self.id}, user_id: {self.user_id}, {self.start_time})"
 
 class Sets(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
-    workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
     repetition = db.Column(db.Integer, nullable=False)
-    order = db.Column(db.Integer, nullable=False)
-    exercise_order = db.Column(db.Integer, nullable=False)
+    set_order = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Integer, nullable=False)
     unit = db.Column(db.String(15), nullable=False, default='lbs')
 
+
     def __repr__(self):
         return f"Sets({self.id}, weight: {self.weight}, repetition: {self.repetition}, exercise_order: {self.exercise_order}, order: {self.order})"
+
+class Workout_Exercise(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
+    exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
+    order = db.Column(db.Integer, nullable=False)
 
 class Workout_Muscle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
