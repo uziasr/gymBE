@@ -1,15 +1,15 @@
 from app import app, db
 from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, WorkoutExercise
-from flask import request
+from flask import request, jsonify
 from datetime import datetime
 
-def jsonify_object(instance, cls):
-    return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns}
+def jsonify_object(instance, cls, remove_keys=[]):
+    return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns if i.key not in remove_keys}
 
 
 @app.route('/')
 def hello_world():
-    return {"message" : ['hello','there']}
+    return jsonify(["hello","there"])
 
 
 # prime example of taking in parameters from url
@@ -92,3 +92,27 @@ def get_workout(id):
         "exercises": exercise_list
     }
 
+@app.route('/workout/<id>/set')
+def get_full_workout(id):
+    # where id comes from WorkoutExercise
+    exercise_list = WorkoutExercise.query.filter_by(workout_id=id).all()
+    # grab the primary key here and query sets to get all the additional info
+    complete_workout= {}
+    for exercise in exercise_list:
+        exercise_sets = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
+    Sets.query.filter_by()
+
+@app.route('/workout/exercise/<id>')
+def get_sets_for_workout(id):
+    # where id comes from WorkoutExercise
+    exercise = Exercise.query.get(WorkoutExercise.query.get(id).exercise_id).name
+    set_list = Sets.query.filter_by(workout_exercise_id=id).all()
+    # grab the primary key here and query sets to get all the additional info
+    complete_workout= {}
+    # for exercise in exercise_list:
+    #     #     exercise_sets = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
+    #     # Sets.query.filter_by()
+    return {
+        "exercise": exercise,
+        "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
+    }
