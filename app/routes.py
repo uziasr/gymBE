@@ -97,10 +97,17 @@ def get_full_workout(id):
     # where id comes from WorkoutExercise
     exercise_list = WorkoutExercise.query.filter_by(workout_id=id).all()
     # grab the primary key here and query sets to get all the additional info
-    complete_workout= {}
+    complete_workout= []
     for exercise in exercise_list:
-        exercise_sets = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
-    Sets.query.filter_by()
+        set_list = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
+        exercise_name = Exercise.query.get(exercise.id).name
+        exercise_sets = {
+            "exercise": exercise_name,
+            "order": exercise.order,
+            "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
+        }
+        complete_workout.append(exercise_sets)
+    return jsonify(complete_workout)
 
 @app.route('/workout/exercise/<id>')
 def get_sets_for_workout(id):
@@ -108,7 +115,6 @@ def get_sets_for_workout(id):
     exercise = Exercise.query.get(WorkoutExercise.query.get(id).exercise_id).name
     set_list = Sets.query.filter_by(workout_exercise_id=id).all()
     # grab the primary key here and query sets to get all the additional info
-    complete_workout= {}
     # for exercise in exercise_list:
     #     #     exercise_sets = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
     #     # Sets.query.filter_by()
