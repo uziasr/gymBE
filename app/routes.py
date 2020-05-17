@@ -163,8 +163,10 @@ def user_exercise_stats(id):
     exercise = request.get_json()['exercise']
     exercise_id = Exercise.query.filter_by(name=exercise).first().id
     my_workouts = Workout.query.filter_by(user_id=id).all()
-    all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
-    filtered_by_exercise = filter(lambda x: x and x.exercise_id == 1, all_my_workout_exercises)
+    all_my_workout_exercises = [(workout.start_time, WorkoutExercise.query.get(workout.id)) for workout in my_workouts]
+    filtered_by_exercise = filter(lambda x: x[1] and x[1].exercise_id == 1, all_my_workout_exercises)
     exercise_stats = {}
+    # max_reps, max_weight = max(filtered_by_exercise, key=lambda e: e[1]. ), max(filtered_by_exercise, key=lambda e:)
+    # send the max weight and max rep
 
 
