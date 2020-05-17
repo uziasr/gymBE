@@ -3,7 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="72ecba67-c82e-4484-9444-cdb7a1b1749b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/gym_pal.db" beforeDir="false" afterPath="$PROJECT_DIR$/app/gym_pal.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run.py" beforeDir="false" afterPath="$PROJECT_DIR$/run.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -116,7 +118,8 @@
       <updated>1588734879846</updated>
       <workItem from="1588734943435" duration="14012000" />
       <workItem from="1588797333793" duration="22354000" />
-      <workItem from="1589010645729" duration="37923000" />
+      <workItem from="1589010645729" duration="49428000" />
+      <workItem from="1589421509814" duration="7749000" />
     </task>
     <servers />
   </component>
@@ -136,14 +139,14 @@
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
     <state width="196" height="457" key="HiddenNamespacesPopup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1588744129009" />
-    <state x="2576" y="344" key="com.intellij.ide.util.TipDialog" timestamp="1589010724082">
+    <state x="2576" y="344" key="com.intellij.ide.util.TipDialog" timestamp="1589421738156">
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
-    <state x="2576" y="344" key="com.intellij.ide.util.TipDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1589010724082" />
-    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1589214979048">
+    <state x="2576" y="344" key="com.intellij.ide.util.TipDialog/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1589421738156" />
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1589692151124">
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
-    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1589214979048" />
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1589692151124" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

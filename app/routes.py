@@ -1,6 +1,6 @@
 from app import app, db
 from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, WorkoutExercise
-from flask import request, jsonify
+from flask import request, jsonify, Response
 from datetime import datetime
 
 def jsonify_object(instance, cls, remove_keys=[]):
@@ -44,13 +44,17 @@ def start_workout(id):
         db.session.commit()
     return {"message":"workout created"}
 
-@app.route('/endWorkout/<id>')
+@app.route('/workout/<id>/end')
 def end_workout(id):
     # id here can be the id of the user of it can be the id of the workout
     # if the former is selected, a query will need to be run to get the users workouts
     # and chose the most recent one
     # for now the id will belong to the workout
     current_workout = Workout.query.get(id)
+    if not current_workout:
+        return {"message": "workout does not exist"}, 400
+    if current_workout.end_time:
+        return {"message": "workout already finished"}, 400
     current_workout.end_time = datetime.utcnow()
     db.session.commit()
     return {
@@ -122,3 +126,45 @@ def get_sets_for_workout(id):
         "exercise": exercise,
         "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
     }
+@app.route('/workout/exercise')
+def get_all_exercises():
+    exercises = Exercise.query.all()
+    return jsonify([e.name for e in exercises])
+
+@app.route('/workout/<id>/exercise/<exercise_id>', methods=['DELETE'])
+def delete_exercise(id, exercise_id):
+    deleted_exercise = WorkoutExercise.query.get(exercise_id)
+    deleted_exercise_dict = jsonify_object(deleted_exercise, WorkoutExercise)
+    deleted_exercise.delete()
+    return {
+        "message": "successful",
+        "exercise": deleted_exercise_dict
+    }
+
+@app.route('/sets/<set_id>', methods=['DELETE'])
+def delete_set(set_id):
+    deleted_set = Sets.query.get(set_id)
+    delete_set_dict = jsonify_object(delete_set, Sets)
+    deleted_set.delete()
+    return {
+        "message":" successful",
+        "set": delete_set_dict
+    }
+
+@app.route('/user/<id>/exercise')
+def user_exercise_list(id):
+    my_workouts = Workout.query.filter_by(user_id=id).all()
+    all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts if workout]
+    all_my_exercises = [Exercise.query.filter_by(id=e.exercise_id).first().name for e in all_my_workout_exercises if e]
+    return jsonify(all_my_exercises)
+
+@app.route('/user/<id>/exercise', methods=['POST'])
+def user_exercise_stats(id):
+    exercise = request.get_json()['exercise']
+    exercise_id = Exercise.query.filter_by(name=exercise).first().id
+    my_workouts = Workout.query.filter_by(user_id=id).all()
+    all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
+    filtered_by_exercise = filter(lambda x: x and x.exercise_id == 1, all_my_workout_exercises)
+    exercise_stats = {}
+
+
