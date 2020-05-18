@@ -6,6 +6,8 @@ from datetime import datetime
 def jsonify_object(instance, cls, remove_keys=[]):
     return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns if i.key not in remove_keys}
 
+def one_rep_max(a_set):
+    return a_set.weight * a_set.repetition * .033 + a_set.weight
 
 @app.route('/')
 def hello_world():
@@ -155,18 +157,44 @@ def delete_set(set_id):
 def user_exercise_list(id):
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts if workout]
-    all_my_exercises = [Exercise.query.filter_by(id=e.exercise_id).first().name for e in all_my_workout_exercises if e]
+    all_my_exercises = [jsonify_object(Exercise.query.filter_by(id=e.exercise_id).first(), Exercise) for e in all_my_workout_exercises if e]
     return jsonify(all_my_exercises)
 
-@app.route('/user/<id>/exercise', methods=['POST'])
-def user_exercise_stats(id):
-    exercise = request.get_json()['exercise']
-    exercise_id = Exercise.query.filter_by(name=exercise).first().id
-    my_workouts = Workout.query.filter_by(user_id=id).all()
-    all_my_workout_exercises = [(workout.start_time, WorkoutExercise.query.get(workout.id)) for workout in my_workouts]
-    filtered_by_exercise = filter(lambda x: x[1] and x[1].exercise_id == 1, all_my_workout_exercises)
-    exercise_stats = {}
-    # max_reps, max_weight = max(filtered_by_exercise, key=lambda e: e[1]. ), max(filtered_by_exercise, key=lambda e:)
-    # send the max weight and max rep
+@app.route('/user/<id>/exercise/<e_id>')
+def user_exercise_stats(id, e_id):
 
+
+    my_workouts = Workout.query.filter_by(user_id=id).all()
+    all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
+
+    filtered_by_exercise = filter(lambda x: x and x.exercise_id == int(e_id), all_my_workout_exercises)
+
+    all_sets = []
+    for exercise in filtered_by_exercise:
+        all_sets = [*all_sets, *exercise.sets]
+    max_rep, max_weight, max_combination, max_one_rep, max_one_rep_set = all_sets[0], all_sets[0], all_sets[0], one_rep_max(all_sets[0]), all_sets[0]
+    count, sum_weight, sum_reps = 0,0,0
+
+    for current_set in all_sets:
+        if current_set.weight > max_weight.weight: max_weight = current_set
+        if current_set.weight == max_weight.weight:
+            if current_set.repetition > max_weight.repetition:
+                max_weight = current_set
+        if current_set.repetition > max_rep.repetition: max_rep = current_set
+        if current_set.repetition == max_rep.repetition:
+            if current_set.weight > max_rep.weight:
+                max_rep = current_set
+        if one_rep_max(current_set) >= one_rep_max(max_one_rep_set):
+            max_one_rep_set = current_set
+        count += 1
+        sum_weight += current_set.weight
+        sum_reps += current_set.repetition
+
+    return jsonify({
+        "max_weight": jsonify_object(max_weight, Sets),
+        "max_reps": jsonify_object(max_rep, Sets),
+        "average_reps": sum_reps/count,
+        "average_weight": sum_weight/count,
+        "total_sets": count
+    })
 
