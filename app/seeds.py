@@ -57,3 +57,5 @@ def seed_exercises():
     for exercise in master_exercises:
         db.session.add(Exercise(name=exercise[0], muscle_id=exercise[1]))
 
+seed_muscles()
+seed_exercises()

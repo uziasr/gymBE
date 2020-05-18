@@ -9,7 +9,7 @@ class User(db.Model):
     workouts = db.relationship('Workout', backref='user', lazy=True)
 
     def __repr__(self):
-        return f"User('{self.name}','{self.email}')"
+        return f"User('{self.id}' '{self.name}','{self.email}')"
 
 
 class Muscle(db.Model):
@@ -28,35 +28,45 @@ class Exercise(db.Model):
 
 
     def __repr__(self):
-        return f"Exercise('{self.name}')"
+        return f"Exercise({self.id} '{self.name}')"
 
 class Workout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
-    workout_set = db.relationship('Sets', backref='workout_sets', lazy=True)
+    workout_exercise = db.relationship('WorkoutExercise', backref='workout_exercise', lazy=True)
+
 
     def __repr__(self):
         return f"Workout({self.id}, user_id: {self.user_id}, {self.start_time})"
 
 class Sets(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
-    workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
     repetition = db.Column(db.Integer, nullable=False)
-    order = db.Column(db.Integer, nullable=False)
-    exercise_order = db.Column(db.Integer, nullable=False)
+    set_order = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Integer, nullable=False)
     unit = db.Column(db.String(15), nullable=False, default='lbs')
+    workout_exercise_id = db.Column(db.Integer, db.ForeignKey('workout_exercise.id'), nullable=False)
+
 
     def __repr__(self):
-        return f"Sets({self.id}, weight: {self.weight}, repetition: {self.repetition}, exercise_order: {self.exercise_order}, order: {self.order})"
+        return f"Sets({self.id}, weight: {self.weight}, repetition: {self.repetition}, order: {self.set_order})"
 
-class Workout_Muscle(db.Model):
+class WorkoutExercise(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
+    exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
+    order = db.Column(db.Integer, nullable=False)
+    sets = db.relationship('Sets', backref='sets', lazy=True)
+
+    def __repr__(self):
+        return f"WorkoutExercise({self.id}, workout_id: {self.workout_id}, exercise_id: {self.exercise_id}, order:{self.order})"
+
+class WorkoutMuscle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
     muscle_group_id = db.Column(db.Integer, db.ForeignKey('muscle.id'), nullable=False)
 
     def __repr__(self):
-        return f"Workout_Muscle(id: {self.id}, workout_id: {self.workout_id}, muscle_group_id: {self.muscle_group_id})"
+        return f"WorkoutMuscle(id: {self.id}, workout_id: {self.workout_id}, muscle_group_id: {self.muscle_group_id})"
