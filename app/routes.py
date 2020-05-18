@@ -195,6 +195,11 @@ def user_exercise_stats(id, e_id):
         "max_reps": jsonify_object(max_rep, Sets),
         "average_reps": sum_reps/count,
         "average_weight": sum_weight/count,
-        "total_sets": count
+        "total_sets": count,
+        "projected_one_rep": {
+            "weight": max_one_rep_set.weight,
+            "reps": max_one_rep_set.repetition,
+            "max_weight": max_one_rep
+        }
     })
 
