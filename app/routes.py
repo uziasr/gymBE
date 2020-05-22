@@ -7,6 +7,7 @@ def jsonify_object(instance, cls, remove_keys=[]):
     return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns if i.key not in remove_keys}
 
 def one_rep_max(a_set):
+    # come back and check if the unit of weight is pounds or kilograms
     return a_set.weight * a_set.repetition * .033 + a_set.weight
 
 @app.route('/')
@@ -158,12 +159,26 @@ def user_exercise_list(id):
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts if workout]
     all_my_exercises = [jsonify_object(Exercise.query.filter_by(id=e.exercise_id).first(), Exercise) for e in all_my_workout_exercises if e]
-    return jsonify(all_my_exercises)
+    dates = [w.start_time for w in Workout.query.filter_by(user_id=id).all() if w.end_time]
+    print("this is dates", f"{dates[0].year}-{dates[0].month}-{dates[0].day}")
+    def date_formatter(date):
+        day = date.day
+        month = date.month
+        year = date.year
+        if month < 10:
+            month = f"0{month}"
+        if day < 10:
+            day = f"0{day}"
+        return f"{year}-{month}-{day}"
+
+    return jsonify({
+        "exercises": all_my_exercises,
+        "dates": [date_formatter(d) for d in dates],
+        "total_workouts": len(dates)
+                    })
 
 @app.route('/user/<id>/exercise/<e_id>')
 def user_exercise_stats(id, e_id):
-
-
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
 
@@ -189,7 +204,6 @@ def user_exercise_stats(id, e_id):
         count += 1
         sum_weight += current_set.weight
         sum_reps += current_set.repetition
-
     return jsonify({
         "max_weight": jsonify_object(max_weight, Sets),
         "max_reps": jsonify_object(max_rep, Sets),
@@ -203,3 +217,7 @@ def user_exercise_stats(id, e_id):
         }
     })
 
+@app.route('/user/<id>/workouts')
+def get_all_workouts(id):
+    my_workouts = Workout.query.filter_by(user_id=id).filter(Workout.end_time!=None).all()
+    return jsonify([jsonify_object(workout, Workout) for workout in my_workouts])
