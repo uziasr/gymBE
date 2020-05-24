@@ -36,6 +36,7 @@ class Workout(db.Model):
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
     workout_exercise = db.relationship('WorkoutExercise', backref='workout_exercise', lazy=True)
+    muscles = db.relationship('WorkoutMuscle', backref='workout_muscle', lazy=True)
 
 
     def __repr__(self):
@@ -69,4 +70,5 @@ class WorkoutMuscle(db.Model):
     muscle_group_id = db.Column(db.Integer, db.ForeignKey('muscle.id'), nullable=False)
 
     def __repr__(self):
-        return f"WorkoutMuscle(id: {self.id}, workout_id: {self.workout_id}, muscle_group_id: {self.muscle_group_id})"
+        # return f"WorkoutMuscle(id: {self.id}, workout_id: {self.workout_id}, muscle_group_id: {self.muscle_group_id})"
+        return f"{Muscle.query.get(self.workout_id).name}"

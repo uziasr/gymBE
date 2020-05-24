@@ -99,6 +99,7 @@ def get_workout(id):
         "exercises": exercise_list
     }
 
+
 @app.route('/workout/<id>/set')
 def get_full_workout(id):
     # where id comes from WorkoutExercise
@@ -115,6 +116,7 @@ def get_full_workout(id):
         }
         complete_workout.append(exercise_sets)
     return jsonify(complete_workout)
+
 
 @app.route('/workout/exercise/<id>')
 def get_sets_for_workout(id):
@@ -221,3 +223,20 @@ def user_exercise_stats(id, e_id):
 def get_all_workouts(id):
     my_workouts = Workout.query.filter_by(user_id=id).filter(Workout.end_time!=None).all()
     return jsonify([jsonify_object(workout, Workout) for workout in my_workouts])
+
+@app.route('/user/<id>/workouts',methods=['POST'])
+def get_workout_by_date(id):
+    date = request.get_json()['date'] # format will be 2020-05-11
+    year, month, day = date.split('-')
+    formatted_date = datetime(int(year), int(month), int(day))
+    all_workouts = Workout.query.filter_by(user_id = id).filter(Workout.end_time !=None).all()
+    # all_workouts_by_date = [{**jsonify_object(a_workout, Workout), 'total_time':(a_workout.end_time - a_workout.start_time).total_seconds()} for a_workout in all_workouts if a_workout.start_time.date() == formatted_date.date()]
+    all_workouts_by_date = []
+    for a_workout in all_workouts:
+        if a_workout.start_time.date() == formatted_date.date():
+            all_workouts_by_date.append({**jsonify_object(a_workout, Workout),
+                                 'total_time':(a_workout.end_time - a_workout.start_time).total_seconds(),
+                                 "muscles": (f"{a_workout.muscles}"[1:-1]).split(',')
+                                 })
+    return jsonify(all_workouts_by_date)
+#
