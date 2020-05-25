@@ -230,7 +230,6 @@ def get_workout_by_date(id):
     year, month, day = date.split('-')
     formatted_date = datetime(int(year), int(month), int(day))
     all_workouts = Workout.query.filter_by(user_id = id).filter(Workout.end_time !=None).all()
-    # all_workouts_by_date = [{**jsonify_object(a_workout, Workout), 'total_time':(a_workout.end_time - a_workout.start_time).total_seconds()} for a_workout in all_workouts if a_workout.start_time.date() == formatted_date.date()]
     all_workouts_by_date = []
     for a_workout in all_workouts:
         if a_workout.start_time.date() == formatted_date.date():
