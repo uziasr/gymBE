@@ -111,6 +111,7 @@ def get_full_workout(id):
         exercise_name = Exercise.query.get(exercise.id).name
         exercise_sets = {
             "exercise": exercise_name,
+            "muscle": Muscle.query.filter_by(id = Exercise.query.get(exercise.id).muscle_id).first().name,
             "order": exercise.order,
             "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
         }
@@ -238,4 +239,18 @@ def get_workout_by_date(id):
                                  "muscles": (f"{a_workout.muscles}"[1:-1]).split(',')
                                  })
     return jsonify(all_workouts_by_date)
-#
+
+
+@app.route('/workouts/<id>')
+def get_users_workout(id):
+    #all_workout_by_sets = [{Exercise.query.get(e.exercise_id).name: jsonify_object(e.sets,Sets)} for e in Workout.query.get(2).workout_exercise]
+    # all_workout_by_sets = [we.sets for we in Workout.query.get(2).workout_exercise]
+    workout_dict = {}
+    for index, exercise in enumerate(Workout.query.get(2).workout_exercise):
+        current_exercise = Exercise.query.get(WorkoutExercise.exercise_id).name
+        if current_exercise not in workout_dict:
+            workout_dict[current_exercise] = [jsonify_object(current_set, Sets) for current_set in exercise.sets]
+        else:
+            workout_dict[f"{current_exercise}-{index}"] = [jsonify_object(current_set, Sets) for current_set in exercise.sets]
+
+    return jsonify(workout_dict)
