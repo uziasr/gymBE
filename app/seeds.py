@@ -9,10 +9,10 @@ major_muscle_group = ['Quadriceps', 'Hamstrings',
                       'Abs']
 
 leg_exercises = [
-    ('leg press', 0),('squat', 0), ('leg extensions', 0),
-    ('lunge', 0), ('goblet squat', 0), ('front squat', 0),
-    ('deadlift', 1), ('leg curls', 1), ('Glute-Ham Raise', 1),
-    ('Romanian deadlift', 1), ('hip thrust', 1), ('kettlebell swing', 1),
+    ('leg press', 1),('squat', 1), ('leg extensions', 1),
+    ('lunge', 1), ('goblet squat', 1), ('front squat', 1),
+    ('deadlift', 2), ('leg curls', 2), ('Glute-Ham Raise', 2),
+    ('Romanian deadlift', 2), ('hip thrust', 2), ('kettlebell swing', 2),
     ('standing calf raise', 3), ('seated calf raise', 3),
              ]
 
