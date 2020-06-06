@@ -135,7 +135,15 @@ def get_sets_for_workout(id):
 @app.route('/workout/exercise')
 def get_all_exercises():
     exercises = Exercise.query.all()
-    return jsonify([e.name for e in exercises])
+    exercise_with_muscle = []
+    # print(exercises)
+    for exercise in exercises:
+        print(exercise)
+        exercise_with_muscle.append({
+            "exercise": exercise.name,
+            "muscle": Muscle.query.filter_by(id=exercise.muscle_id).name
+        })
+    return exercise_with_muscle
 
 @app.route('/workout/<id>/exercise/<exercise_id>', methods=['DELETE'])
 def delete_exercise(id, exercise_id):
