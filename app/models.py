@@ -56,6 +56,7 @@ class Sets(db.Model):
 
 class WorkoutExercise(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    # completed = db.Column(db.Boolean, nullable=False, default=False)
     workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
     exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
     order = db.Column(db.Integer, nullable=False)
@@ -71,4 +72,4 @@ class WorkoutMuscle(db.Model):
 
     def __repr__(self):
         # return f"WorkoutMuscle(id: {self.id}, workout_id: {self.workout_id}, muscle_group_id: {self.muscle_group_id})"
-        return f"{Muscle.query.get(self.workout_id).name}"
+        return f"{Muscle.query.get(self.muscle_group_id).name}"

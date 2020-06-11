@@ -10,12 +10,6 @@ def one_rep_max(a_set):
     # come back and check if the unit of weight is pounds or kilograms
     return a_set.weight * a_set.repetition * .033 + a_set.weight
 
-@app.route('/')
-def hello_world():
-    return jsonify(["hello","there"])
-
-
-# prime example of taking in parameters from url
 
 @app.route('/muscles')
 def get_muscles():
@@ -29,7 +23,7 @@ def create_user():
     db.session.add(User(name=user_info['name'], email=user_info['email'], password=user_info['password']))
     db.session.commit()
 
-@app.route('/workout/<id>', methods=['POST'])
+@app.route('/user/<id>/workout', methods=['POST'])
 def start_workout(id):
     # id will belong to the user
     new_workout = Workout(user_id=id)
@@ -38,6 +32,7 @@ def start_workout(id):
     # for now, support only explicit muscles and not muscle groups
     print(new_workout)
     muscles_getting_trained = request.get_json()["muscles"]
+    print(muscles_getting_trained)
     if new_workout.id:
         for muscle in muscles_getting_trained:
             current_muscle = Muscle.query.filter_by(name=muscle).first()
@@ -45,7 +40,7 @@ def start_workout(id):
             new_wm = WorkoutMuscle(workout_id=new_workout.id, muscle_group_id=current_muscle.id)
             db.session.add(new_wm)
         db.session.commit()
-    return {"message":"workout created"}
+    return {"id": new_workout.id}
 
 @app.route('/workout/<id>/end')
 def end_workout(id):
@@ -71,26 +66,28 @@ def add_exercise(id):
     # exercise is coming in as a string and should be looked up in table
     # id should either be passed through url or through json
     new_exercise = request.get_json()
+    order = len(Workout.query.get(id).workout_exercise) + 1
     exercise_id = Exercise.query.filter_by(name=new_exercise["exercise"]).first().id
-    new_workout_exercise = WorkoutExercise(workout_id=id, exercise_id=exercise_id, order=new_exercise["order"])
+    new_workout_exercise = WorkoutExercise(workout_id=id, exercise_id=exercise_id, order=order)
     db.session.add(new_workout_exercise)
     db.session.commit()
     return {
         "id": new_workout_exercise.id,
         "exercise": new_exercise["exercise"],
-        "order": new_exercise["order"]
     }
 
-@app.route('/workout/<id>/set', methods=['POST'])
+@app.route('/workout/exercise/<id>/set', methods=['POST'])
 def add_set(id):
     req = request.get_json()
-    new_set = Sets(repetition=req["repetition"], set_order=req["set_order"], weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
+    order = len(WorkoutExercise.query.get(id).sets) + 1
+    new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
     db.session.add(new_set)
     db.session.commit()
     return jsonify_object(instance=new_set, cls=Sets)
 
 @app.route('/workout/<id>')
 def get_workout(id):
+    # gets exercises by name for a give workout
     # exercise_list = WorkoutExercise.query.get(id)
     my_workout = WorkoutExercise.query.filter_by(workout_id=id).all()
     my_workout.sort(key=lambda exercise: exercise.order)
@@ -136,9 +133,7 @@ def get_sets_for_workout(id):
 def get_all_exercises():
     exercises = Exercise.query.all()
     exercise_with_muscle = []
-    # print(exercises)
     for exercise in exercises:
-        print(exercise, exercise.muscle_id)
         exercise_with_muscle.append({
             "exercise": exercise.name,
             "muscle": Muscle.query.filter_by(id=exercise.muscle_id).first().name
