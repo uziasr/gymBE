@@ -1,4 +1,4 @@
-from app import app, db
+from app import app, db, hashing
 from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, WorkoutExercise
 from flask import request, jsonify, Response
 from datetime import datetime
@@ -17,11 +17,35 @@ def get_muscles():
     muscles_list = [muscle.name for muscle in muscles]
     return " ".join(muscles_list)
 
-@app.route('/user', methods=['POST'])
+@app.route('/user/signup', methods=['POST'])
 def create_user():
     user_info = request.get_json()
+    if len(User.query.filter_by(email=user_info["email"]).all()) >= 1:
+        return {
+            "error": "this email has already been taken"
+        }, 400
+    hashed_password = hashing.hash_value(user_info["password"], salt="salt")
     db.session.add(User(name=user_info['name'], email=user_info['email'], password=user_info['password']))
     db.session.commit()
+    return {"message": "user has been created"}, 201
+
+@app.route('/user/signin', methods={"POST"})
+def sign_in():
+    user_info = request.get_json()
+    if "password" not in user_info or "email" not in user_info:
+        return {
+            "error": "You are missing one or both of the required fields: password, email"
+               }, 400
+    saved_user = User.query.filter_by(email=user_info["email"]).first()
+    if saved_user is None:
+        return {
+            "error": "A user by that email of '{}' does not exist".format(user_info["email"])
+               }, 400
+    # if hashing.check_value(h, "password", salt="hello)"
+    if hashing.check_value(saved_user.password, user_info["password"], salt="salt"):
+        return {
+            "message": "success"
+        }, 200
 
 @app.route('/user/<id>/workout', methods=['POST'])
 def start_workout(id):
@@ -166,7 +190,6 @@ def user_exercise_list(id):
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts if workout]
     all_my_exercises = [jsonify_object(Exercise.query.filter_by(id=e.exercise_id).first(), Exercise) for e in all_my_workout_exercises if e]
     dates = [w.start_time for w in Workout.query.filter_by(user_id=id).all() if w.end_time]
-    print("this is dates", f"{dates[0].year}-{dates[0].month}-{dates[0].day}")
     def date_formatter(date):
         day = date.day
         month = date.month
