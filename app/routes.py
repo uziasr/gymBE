@@ -3,7 +3,7 @@ from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, Wor
 from flask import request, jsonify, Response
 from app import (jwt_required, create_access_token,
     get_jwt_identity)
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def jsonify_object(instance, cls, remove_keys=[]):
     return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns if i.key not in remove_keys}
@@ -19,18 +19,6 @@ def get_muscles():
     muscles_list = [muscle.name for muscle in muscles]
     return " ".join(muscles_list)
 
-@app.route("/test")
-def test():
-    print(get_jwt_identity())
-    return create_access_token(identity={"user":"hello"})
-
-@app.route("/newtest")
-@jwt_required
-def newtest():
-    print(get_jwt_identity())
-    return get_jwt_identity(), 200
-
-
 @app.route('/user/signup', methods=['POST'])
 def create_user():
     user_info = request.get_json()
@@ -42,8 +30,9 @@ def create_user():
     db.session.add(User(name=user_info['name'], email=user_info['email'], password=user_info['password']))
     db.session.commit()
     newly_created_user = User.query.filter_by(email=user_info["email"]).first()
-    token = create_access_token(identity=jsonify_object(newly_created_user, User, ["password"]))
-    return {"message": "user has been created"}, 201
+    expires = timedelta(days=365)
+    token = create_access_token(identity=jsonify_object(newly_created_user, User, ["password"]), expires_delta = expires)
+    return {"token": token}, 201
 
 @app.route('/user/signin', methods={"POST"})
 def sign_in():
@@ -59,9 +48,11 @@ def sign_in():
                }, 400
     # if hashing.check_value(h, "password", salt="hello)"
     if hashing.check_value(saved_user.password, user_info["password"], salt="salt"):
+        expires = timedelta(days=365)
+        token = create_access_token(identity=jsonify_object(saved_user, User, ["password"]), expires_delta = expires)
         return {
-            "message": "success"
-        }, 200
+                   "token": token
+               }, 201
 
 @app.route('/user/<id>/workout', methods=['POST'])
 def start_workout(id):
