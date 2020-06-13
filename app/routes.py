@@ -1,6 +1,8 @@
 from app import app, db, hashing
 from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, WorkoutExercise
 from flask import request, jsonify, Response
+from app import (jwt_required, create_access_token,
+    get_jwt_identity)
 from datetime import datetime
 
 def jsonify_object(instance, cls, remove_keys=[]):
@@ -17,6 +19,18 @@ def get_muscles():
     muscles_list = [muscle.name for muscle in muscles]
     return " ".join(muscles_list)
 
+@app.route("/test")
+def test():
+    print(get_jwt_identity())
+    return create_access_token(identity={"user":"hello"})
+
+@app.route("/newtest")
+@jwt_required
+def newtest():
+    print(get_jwt_identity())
+    return get_jwt_identity(), 200
+
+
 @app.route('/user/signup', methods=['POST'])
 def create_user():
     user_info = request.get_json()
@@ -27,6 +41,8 @@ def create_user():
     hashed_password = hashing.hash_value(user_info["password"], salt="salt")
     db.session.add(User(name=user_info['name'], email=user_info['email'], password=user_info['password']))
     db.session.commit()
+    newly_created_user = User.query.filter_by(email=user_info["email"]).first()
+    token = create_access_token(identity=jsonify_object(newly_created_user, User, ["password"]))
     return {"message": "user has been created"}, 201
 
 @app.route('/user/signin', methods={"POST"})
