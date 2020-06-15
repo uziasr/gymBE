@@ -5,13 +5,23 @@ from app import (jwt_required, create_access_token,
     get_jwt_identity)
 from datetime import datetime, timedelta
 
+
 def jsonify_object(instance, cls, remove_keys=[]):
     return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns if i.key not in remove_keys}
+
 
 def one_rep_max(a_set):
     # come back and check if the unit of weight is pounds or kilograms
     return a_set.weight * a_set.repetition * .033 + a_set.weight
 
+
+@app.route("/test")
+def test():
+    a = {"a": "b", "c":"d"}
+    return {
+        **a,
+        "1":"2"
+    }
 
 @app.route('/muscles')
 def get_muscles():
@@ -19,9 +29,14 @@ def get_muscles():
     muscles_list = [muscle.name for muscle in muscles]
     return " ".join(muscles_list)
 
+
 @app.route('/user/signup', methods=['POST'])
 def create_user():
     user_info = request.get_json()
+    if "password" not in user_info or "email" not in user_info or "name" not in user_info:
+        return {
+            "error": "You are missing one or both of the required fields: password, email"
+               }, 400
     if len(User.query.filter_by(email=user_info["email"]).all()) >= 1:
         return {
             "error": "this email has already been taken"
@@ -49,9 +64,10 @@ def sign_in():
     # if hashing.check_value(h, "password", salt="hello)"
     if hashing.check_value(saved_user.password, user_info["password"], salt="salt"):
         expires = timedelta(days=365)
-        token = create_access_token(identity=jsonify_object(saved_user, User, ["password"]), expires_delta = expires)
+        token = create_access_token(identity=saved_user.id, expires_delta = expires)
         return {
-                   "token": token
+                   "token": token,
+                    **jsonify_object(saved_user, User, ["password"])
                }, 201
 
 @app.route('/user/<id>/workout', methods=['POST'])
