@@ -4,9 +4,7 @@
     <list default="true" id="72ecba67-c82e-4484-9444-cdb7a1b1749b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/gym_pal.db" beforeDir="false" afterPath="$PROJECT_DIR$/app/gym_pal.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/seeds.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/seeds.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -125,6 +123,7 @@
       <workItem from="1590646632266" duration="5245000" />
       <workItem from="1591210833964" duration="2264000" />
       <workItem from="1591383226644" duration="20694000" />
+      <workItem from="1591851227103" duration="17588000" />
     </task>
     <servers />
   </component>
@@ -157,9 +156,9 @@
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
     <state x="2576" y="118" width="607" height="804" key="find.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1591406094696" />
-    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1591405581105">
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1592082691162">
       <screen x="1920" y="0" width="1920" height="1040" />
     </state>
-    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1591405581105" />
+    <state x="2543" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1536.824/1920.0.1920.1040@1920.0.1920.1040" timestamp="1592082691162" />
   </component>
 </project>
