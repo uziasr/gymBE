@@ -15,14 +15,6 @@ def one_rep_max(a_set):
     return a_set.weight * a_set.repetition * .033 + a_set.weight
 
 
-@app.route("/test")
-def test():
-    a = {"a": "b", "c":"d"}
-    return {
-        **a,
-        "1":"2"
-    }
-
 @app.route('/muscles')
 def get_muscles():
     muscles = Muscle.query.all()
@@ -42,14 +34,14 @@ def create_user():
             "error": "this email has already been taken"
         }, 400
     hashed_password = hashing.hash_value(user_info["password"], salt="salt")
-    db.session.add(User(name=user_info['name'], email=user_info['email'], password=user_info['password']))
+    db.session.add(User(name=user_info['name'], email=user_info['email'], password=hashed_password))
     db.session.commit()
     newly_created_user = User.query.filter_by(email=user_info["email"]).first()
     expires = timedelta(days=365)
     token = create_access_token(identity=jsonify_object(newly_created_user, User, ["password"]), expires_delta = expires)
     return {"token": token}, 201
 
-@app.route('/user/signin', methods={"POST"})
+@app.route('/user/signin', methods=["POST"])
 def sign_in():
     user_info = request.get_json()
     if "password" not in user_info or "email" not in user_info:
@@ -62,6 +54,7 @@ def sign_in():
             "error": "A user by that email of '{}' does not exist".format(user_info["email"])
                }, 400
     # if hashing.check_value(h, "password", salt="hello)"
+    print(hashing.check_value(saved_user.password, user_info["password"], salt="salt"))
     if hashing.check_value(saved_user.password, user_info["password"], salt="salt"):
         expires = timedelta(days=365)
         token = create_access_token(identity=saved_user.id, expires_delta = expires)
@@ -69,6 +62,10 @@ def sign_in():
                    "token": token,
                     **jsonify_object(saved_user, User, ["password"])
                }, 201
+    else:
+        return {
+            "Error": "That is an incorrect password"
+        }, 500
 
 @app.route('/user/<id>/workout', methods=['POST'])
 def start_workout(id):
@@ -77,9 +74,7 @@ def start_workout(id):
     db.session.add(new_workout)
     db.session.commit()
     # for now, support only explicit muscles and not muscle groups
-    print(new_workout)
     muscles_getting_trained = request.get_json()["muscles"]
-    print(muscles_getting_trained)
     if new_workout.id:
         for muscle in muscles_getting_trained:
             current_muscle = Muscle.query.filter_by(name=muscle).first()
@@ -292,8 +287,6 @@ def get_workout_by_date(id):
 
 @app.route('/workouts/<id>')
 def get_users_workout(id):
-    #all_workout_by_sets = [{Exercise.query.get(e.exercise_id).name: jsonify_object(e.sets,Sets)} for e in Workout.query.get(2).workout_exercise]
-    # all_workout_by_sets = [we.sets for we in Workout.query.get(2).workout_exercise]
     workout_dict = {}
     for index, exercise in enumerate(Workout.query.get(2).workout_exercise):
         current_exercise = Exercise.query.get(WorkoutExercise.exercise_id).name
