@@ -143,6 +143,10 @@ def get_workout(id):
 def get_full_workout(id):
     # where id comes from WorkoutExercise
     exercise_list = WorkoutExercise.query.filter_by(workout_id=id).all()
+    if len(exercise_list) == 0:
+        return {
+            "error": "this workout contains no exercises yet"
+        }, 400
     # grab the primary key here and query sets to get all the additional info
     complete_workout= []
     for exercise in exercise_list:
