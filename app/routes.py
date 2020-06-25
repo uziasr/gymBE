@@ -206,8 +206,10 @@ def delete_set(set_id):
         "set": delete_set_dict
     }
 
-@app.route('/user/<id>/exercise')
-def user_exercise_list(id):
+@app.route('/user/exercise')
+@jwt_required
+def user_exercise_list():
+    id = get_jwt_identity()
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts if workout]
     all_my_exercises = [jsonify_object(Exercise.query.filter_by(id=e.exercise_id).first(), Exercise) for e in all_my_workout_exercises if e]
