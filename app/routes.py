@@ -21,7 +21,7 @@ def get_muscles():
     muscles_list = [muscle.name for muscle in muscles]
     return " ".join(muscles_list)
 
-
+#START For user registration and login
 @app.route('/user/signup', methods=['POST'])
 def create_user():
     user_info = request.get_json()
@@ -44,6 +44,7 @@ def create_user():
                "token": token,
                 **jsonified_user
            }, 201
+
 
 @app.route('/user/signin', methods=["POST"])
 def sign_in():
@@ -70,6 +71,8 @@ def sign_in():
         return {
             "Error": "That is an incorrect password"
         }, 500
+#END
+
 
 @app.route('/user/workout', methods=['POST'])
 @jwt_required
@@ -134,6 +137,7 @@ def add_set(id):
 
 @app.route('/workout/<id>')
 def get_workout(id):
+    #!!
     # gets exercises by name for a give workout
     # exercise_list = WorkoutExercise.query.get(id)
     my_workout = WorkoutExercise.query.filter_by(workout_id=id).all()
@@ -180,6 +184,8 @@ def get_sets_for_workout(id):
         "exercise": exercise,
         "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
     }
+
+
 @app.route('/workout/exercise')
 def get_all_exercises():
     exercises = Exercise.query.all()
@@ -190,6 +196,7 @@ def get_all_exercises():
             "muscle": Muscle.query.filter_by(id=exercise.muscle_id).first().name
         })
     return jsonify(exercise_with_muscle)
+
 
 @app.route('/workout/<id>/exercise/<exercise_id>', methods=['DELETE'])
 def delete_exercise(id, exercise_id):
@@ -279,12 +286,6 @@ def user_exercise_stats(id, e_id):
         }
     })
 
-@app.route('/user/workouts')
-@jwt_required
-def get_all_workouts():
-    id = get_jwt_identity()
-    my_workouts = Workout.query.filter_by(user_id=id).filter(Workout.end_time!=None).all()
-    return jsonify([jsonify_object(workout, Workout) for workout in my_workouts])
 
 @app.route('/user/workouts/date',methods=['POST'])
 @jwt_required
@@ -304,6 +305,13 @@ def get_workout_by_date():
                                  })
     return jsonify(all_workouts_by_date)
 
+@app.route('/user/workouts')
+@jwt_required
+def get_all_workouts():
+    id = get_jwt_identity()
+    my_workouts = Workout.query.filter_by(user_id=id).filter(Workout.end_time!=None).all()
+    return jsonify([jsonify_object(workout, Workout) for workout in my_workouts])
+
 
 @app.route('/workouts/<id>')
 def get_users_workout(id):
@@ -316,3 +324,23 @@ def get_users_workout(id):
             workout_dict[f"{current_exercise}-{index}"] = [jsonify_object(current_set, Sets) for current_set in exercise.sets]
 
     return jsonify(workout_dict)
+
+#Start up enpoints for workouts and sets
+
+@app.route("/workout/startup")
+@jwt_required
+def get_workout_in_progress():
+    id = get_jwt_identity()
+    latest_user_workout = Workout.query.order_by(Workout.id.desc()).first()
+    if latest_user_workout and latest_user_workout.end_time is None: #existing workout
+        return jsonify_object(latest_user_workout, Workout), 200
+    else:
+        return {
+            "error": "there is not workout in progress"
+        }, 500
+        # there are no workouts that are active
+
+
+@app.route("/workout/startup")
+@jwt_required
+def get_workout_in_progress():
