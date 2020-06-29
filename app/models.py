@@ -56,7 +56,7 @@ class Sets(db.Model):
 
 class WorkoutExercise(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # completed = db.Column(db.Boolean, nullable=False, default=False)
+    completed = db.Column(db.Boolean, nullable=False, default=False)
     workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
     exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
     order = db.Column(db.Integer, nullable=False)

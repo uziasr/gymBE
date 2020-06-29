@@ -37,9 +37,13 @@ def create_user():
     db.session.add(User(name=user_info['name'], email=user_info['email'], password=hashed_password))
     db.session.commit()
     newly_created_user = User.query.filter_by(email=user_info["email"]).first()
+    jsonified_user = jsonify_object(newly_created_user, User, ["password"])
     expires = timedelta(days=365)
-    token = create_access_token(identity=jsonify_object(newly_created_user, User, ["password"]), expires_delta = expires)
-    return {"token": token}, 201
+    token = create_access_token(identity=newly_created_user.id, expires_delta = expires)
+    return {
+               "token": token,
+                **jsonified_user
+           }, 201
 
 @app.route('/user/signin', methods=["POST"])
 def sign_in():
@@ -67,9 +71,11 @@ def sign_in():
             "Error": "That is an incorrect password"
         }, 500
 
-@app.route('/user/<id>/workout', methods=['POST'])
-def start_workout(id):
+@app.route('/user/workout', methods=['POST'])
+@jwt_required
+def start_workout():
     # id will belong to the user
+    id = get_jwt_identity()
     new_workout = Workout(user_id=id)
     db.session.add(new_workout)
     db.session.commit()
@@ -78,7 +84,6 @@ def start_workout(id):
     if new_workout.id:
         for muscle in muscles_getting_trained:
             current_muscle = Muscle.query.filter_by(name=muscle).first()
-            print(current_muscle, current_muscle.id, new_workout.id)
             new_wm = WorkoutMuscle(workout_id=new_workout.id, muscle_group_id=current_muscle.id)
             db.session.add(new_wm)
         db.session.commit()
@@ -210,6 +215,7 @@ def delete_set(set_id):
 @jwt_required
 def user_exercise_list():
     id = get_jwt_identity()
+    print("this is id", id)
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts if workout]
     all_my_exercises = [jsonify_object(Exercise.query.filter_by(id=e.exercise_id).first(), Exercise) for e in all_my_workout_exercises if e]
@@ -235,7 +241,10 @@ def user_exercise_stats(id, e_id):
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
 
-    filtered_by_exercise = filter(lambda x: x and x.exercise_id == int(e_id), all_my_workout_exercises)
+    filtered_by_exercise = list(filter(lambda x: x and x.exercise_id == int(e_id), all_my_workout_exercises))
+
+    if len(filtered_by_exercise) == 0:
+        return {"error": "no information available"}, 500
 
     all_sets = []
     for exercise in filtered_by_exercise:
@@ -270,13 +279,18 @@ def user_exercise_stats(id, e_id):
         }
     })
 
-@app.route('/user/<id>/workouts')
-def get_all_workouts(id):
+@app.route('/user/workouts')
+@jwt_required
+def get_all_workouts():
+    id = get_jwt_identity()
     my_workouts = Workout.query.filter_by(user_id=id).filter(Workout.end_time!=None).all()
     return jsonify([jsonify_object(workout, Workout) for workout in my_workouts])
 
-@app.route('/user/<id>/workouts',methods=['POST'])
-def get_workout_by_date(id):
+@app.route('/user/workouts/date',methods=['POST'])
+@jwt_required
+def get_workout_by_date():
+    id = get_jwt_identity()
+    print(id)
     date = request.get_json()['date'] # format will be 2020-05-11
     year, month, day = date.split('-')
     formatted_date = datetime(int(year), int(month), int(day))
