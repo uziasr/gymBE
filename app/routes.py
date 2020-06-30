@@ -347,14 +347,15 @@ def get_set_in_progress():
     id = get_jwt_identity()
     latest_user_workout = Workout.query.filter_by(user_id=id).order_by(Workout.id.desc()).first()
     if latest_user_workout and latest_user_workout.end_time is None:  # existing workout
-        # return jsonify_object(latest_user_workout, Workout), 200
         current_workout_exercise = WorkoutExercise.query.filter_by(workout_id=latest_user_workout.id).first()
-        if current_workout_exercise.completed:
+        if current_workout_exercise is None or current_workout_exercise.completed:
             return {
                 "error": "there is no workout in progress"
             }, 500
         else:
-            return jsonify([jsonify_object(a_set, Sets) for a_set in current_workout_exercise.sets])
+            return {
+                Exercise.query.get(current_workout_exercise.exercise_id).name : [jsonify_object(a_set, Sets) for a_set in current_workout_exercise.sets]
+            }, 200
     else:
         return {
                    "error": "there is not workout in progress"
