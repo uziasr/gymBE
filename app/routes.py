@@ -66,7 +66,7 @@ def sign_in():
         return {
                    "token": token,
                     **jsonify_object(saved_user, User, ["password"])
-               }, 201
+               }, 200
     else:
         return {
             "Error": "That is an incorrect password"
@@ -90,7 +90,7 @@ def start_workout():
             new_wm = WorkoutMuscle(workout_id=new_workout.id, muscle_group_id=current_muscle.id)
             db.session.add(new_wm)
         db.session.commit()
-    return {"id": new_workout.id}
+    return {"id": new_workout.id}, 201
 
 @app.route('/workout/<id>/end')
 def end_workout(id):
@@ -124,7 +124,17 @@ def add_exercise(id):
     return {
         "id": new_workout_exercise.id,
         "exercise": new_exercise["exercise"],
-    }
+    }, 201
+
+@app.route('/workout/<workout_exercise_id>/exercise', methods=['PATCH'])
+def complete_exercise(workout_exercise_id):
+    completed_exercise = WorkoutExercise.query.get(workout_exercise_id)
+    completed_exercise.completed = True
+    db.session.commit()
+    return {
+        "success": "updated successfully"
+    }, 204
+
 
 @app.route('/workout/exercise/<id>/set', methods=['POST'])
 def add_set(id):
@@ -133,7 +143,7 @@ def add_set(id):
     new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
     db.session.add(new_set)
     db.session.commit()
-    return jsonify_object(instance=new_set, cls=Sets)
+    return jsonify_object(instance=new_set, cls=Sets), 201
 
 @app.route('/workout/<id>')
 def get_workout(id):
@@ -220,7 +230,7 @@ def delete_set(set_id):
 
 @app.route('/user/exercise')
 @jwt_required
-def user_exercise_list():
+def get_user_exercise_list():
     id = get_jwt_identity()
     print("this is id", id)
     my_workouts = Workout.query.filter_by(user_id=id).all()
@@ -244,7 +254,7 @@ def user_exercise_list():
                     })
 
 @app.route('/user/<id>/exercise/<e_id>')
-def user_exercise_stats(id, e_id):
+def get_user_exercise_stats(id, e_id):
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
 
