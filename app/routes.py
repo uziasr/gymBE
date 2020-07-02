@@ -117,7 +117,10 @@ def add_exercise(id):
     # id should either be passed through url or through json
     new_exercise = request.get_json()
     order = len(Workout.query.get(id).workout_exercise) + 1
+    print(new_exercise["exercise"])
     exercise_id = Exercise.query.filter_by(name=new_exercise["exercise"]).first().id
+    print(exercise_id)
+    print(Exercise.query.get(exercise_id))
     new_workout_exercise = WorkoutExercise(workout_id=id, exercise_id=exercise_id, order=order)
     db.session.add(new_workout_exercise)
     db.session.commit()
@@ -161,16 +164,18 @@ def get_workout(id):
 @app.route('/workout/<id>/set')
 def get_full_workout(id):
     # where id comes from WorkoutExercise
-    exercise_list = WorkoutExercise.query.filter_by(workout_id=id).all()
-    if len(exercise_list) == 0:
+    workout_exercise_list = WorkoutExercise.query.filter_by(workout_id=id).all()
+    print(workout_exercise_list)
+    if len(workout_exercise_list) == 0:
         return {
             "error": "this workout contains no exercises yet"
         }, 400
     # grab the primary key here and query sets to get all the additional info
     complete_workout= []
-    for exercise in exercise_list:
+    for exercise in workout_exercise_list:
         set_list = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
-        exercise_name = Exercise.query.get(exercise.id).name
+        exercise_name = Exercise.query.get(exercise.exercise_id).name
+        print(exercise_name)
         exercise_sets = {
             "exercise": exercise_name,
             "muscle": Muscle.query.filter_by(id = Exercise.query.get(exercise.id).muscle_id).first().name,
@@ -234,8 +239,9 @@ def get_user_exercise_list():
     id = get_jwt_identity()
     print("this is id", id)
     my_workouts = Workout.query.filter_by(user_id=id).all()
-    all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts if workout]
-    all_my_exercises = [jsonify_object(Exercise.query.filter_by(id=e.exercise_id).first(), Exercise) for e in all_my_workout_exercises if e]
+    exercise_tuple_list = Workout.query.with_entities(Exercise.name, Exercise.id).join(WorkoutExercise).filter(
+        Workout.user_id == id).distinct().all()
+    all_my_exercises = [{"id": exercise[1], "name": exercise[0]} for exercise in exercise_tuple_list]
     dates = [w.start_time for w in Workout.query.filter_by(user_id=id).all() if w.end_time]
     def date_formatter(date):
         day = date.day
