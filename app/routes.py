@@ -171,14 +171,14 @@ def get_full_workout(id):
             "error": "this workout contains no exercises yet"
         }, 400
     # grab the primary key here and query sets to get all the additional info
-    complete_workout= []
+    complete_workout = []
     for exercise in workout_exercise_list:
         set_list = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
         exercise_name = Exercise.query.get(exercise.exercise_id).name
         print(exercise_name)
         exercise_sets = {
             "exercise": exercise_name,
-            "muscle": Muscle.query.filter_by(id = Exercise.query.get(exercise.id).muscle_id).first().name,
+            "muscle": Muscle.query.filter_by(id = Exercise.query.get(exercise.exercise_id).muscle_id).first().name,
             "order": exercise.order,
             "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
         }
