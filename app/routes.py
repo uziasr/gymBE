@@ -1,6 +1,7 @@
 from app import app, db, hashing
 from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, WorkoutExercise
 from flask import request, jsonify, Response
+from sqlalchemy import func
 from app import (jwt_required, create_access_token,
     get_jwt_identity)
 from datetime import datetime, timedelta
@@ -13,6 +14,17 @@ def jsonify_object(instance, cls, remove_keys=[]):
 def one_rep_max(a_set):
     # come back and check if the unit of weight is pounds or kilograms
     return a_set.weight * a_set.repetition * .033 + a_set.weight
+
+
+def date_formatter(date):
+    day = date.day
+    month = date.month
+    year = date.year
+    if month < 10:
+        month = f"0{month}"
+    if day < 10:
+        day = f"0{day}"
+    return f"{year}-{month}-{day}"
 
 
 @app.route('/muscles')
@@ -237,70 +249,94 @@ def delete_set(set_id):
 @jwt_required
 def get_user_exercise_list():
     id = get_jwt_identity()
-    print("this is id", id)
+    print(id)
     my_workouts = Workout.query.filter_by(user_id=id).all()
-    exercise_tuple_list = Workout.query.with_entities(Exercise.name, Exercise.id).join(WorkoutExercise).filter(
-        Workout.user_id == id).distinct().all()
+    exercise_tuple_list = Workout.query.with_entities(Exercise.name, Exercise.id).join(WorkoutExercise).filter(Workout.user_id == id).distinct().all()
     all_my_exercises = [{"id": exercise[1], "name": exercise[0]} for exercise in exercise_tuple_list]
     dates = [w.start_time for w in Workout.query.filter_by(user_id=id).all() if w.end_time]
-    def date_formatter(date):
-        day = date.day
-        month = date.month
-        year = date.year
-        if month < 10:
-            month = f"0{month}"
-        if day < 10:
-            day = f"0{day}"
-        return f"{year}-{month}-{day}"
 
     return jsonify({
         "exercises": all_my_exercises,
         "dates": [date_formatter(d) for d in dates],
         "total_workouts": len(dates)
                     })
-
+# WorkoutExercise.query.with_entities(func.avg(WorkoutExercise.order)).first()
+# Sets.query.with_entities(func.sum(Sets.repetition), Sets.weight).group_by(Sets.weight).all()
+# Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==1).filter(WorkoutExercise.exercise_id==1).with_entities(func.sum(Sets.repetition)).all()
+# [(34, 15), (48, 25), (36, 40), (31, 45), (144, 55), (47, 65), (32, 75), (48, 80), (53, 85), (107, 90), (48, 100), (24, 105), (132, 115), (24, 120), (263, 135), (16, 145), (135, 155), (64, 165), (32, 180), (135, 185), (8, 200), (22, 210), (355, 225), (8, 228)]
 @app.route('/user/<id>/exercise/<e_id>')
 def get_user_exercise_stats(id, e_id):
+    print(e_id)
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
 
     filtered_by_exercise = list(filter(lambda x: x and x.exercise_id == int(e_id), all_my_workout_exercises))
-
     if len(filtered_by_exercise) == 0:
         return {"error": "no information available"}, 500
 
     all_sets = []
     for exercise in filtered_by_exercise:
         all_sets = [*all_sets, *exercise.sets]
-    max_rep, max_weight, max_combination, max_one_rep, max_one_rep_set = all_sets[0], all_sets[0], all_sets[0], one_rep_max(all_sets[0]), all_sets[0]
-    count, sum_weight, sum_reps = 0,0,0
+
+    if len(all_sets) == 0:
+        return {"error": "no information available"}, 500
+
+    sum_of_reps_by_weight = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id == id).filter(
+        WorkoutExercise.exercise_id == e_id).with_entities(func.sum(Sets.repetition), Sets.weight).group_by(
+        Sets.weight).all()
+    max_rep_tuple = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id== id).filter(WorkoutExercise.exercise_id==e_id)\
+        .with_entities(func.max(Sets.repetition), func.max(Sets.weight), Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.weight).first()
+    max_weight_tuple = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
+        .with_entities(func.max(Sets.weight), func.max(Sets.repetition), Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.repetition).first()
+    # tuple consisting of average weight, average reps, total reps, total weights
+    aw_ar_tr_tw =  Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
+        .with_entities(func.avg(Sets.weight), func.avg(Sets.repetition), func.sum(Sets.repetition), func.sum(Sets.weight)).first()
+
+    max_rep, max_weight, max_combination, max_one_rep_set = all_sets[0], all_sets[0], all_sets[0], all_sets[0]
 
     for current_set in all_sets:
-        if current_set.weight > max_weight.weight: max_weight = current_set
-        if current_set.weight == max_weight.weight:
-            if current_set.repetition > max_weight.repetition:
-                max_weight = current_set
-        if current_set.repetition > max_rep.repetition: max_rep = current_set
-        if current_set.repetition == max_rep.repetition:
-            if current_set.weight > max_rep.weight:
-                max_rep = current_set
         if one_rep_max(current_set) >= one_rep_max(max_one_rep_set):
             max_one_rep_set = current_set
-        count += 1
-        sum_weight += current_set.weight
-        sum_reps += current_set.repetition
-    return jsonify({
-        "max_weight": jsonify_object(max_weight, Sets),
-        "max_reps": jsonify_object(max_rep, Sets),
-        "average_reps": sum_reps/count,
-        "average_weight": sum_weight/count,
-        "total_sets": count,
+    return {
+        "max_weight": {
+            "weight": max_weight_tuple[0],
+            "repetition": max_weight_tuple[1],
+            "date": date_formatter(max_weight_tuple[2]),
+            "exercise_order": max_weight_tuple[3],
+            "set_order": max_weight_tuple[4],
+            "unit": max_weight_tuple[5]
+        },
+        "max_reps": {
+            "repetition": max_rep_tuple[0],
+            "weight": max_rep_tuple[1],
+            "date": date_formatter(max_rep_tuple[2]),
+            "exercise_order": max_rep_tuple[3],
+            "set_order": max_rep_tuple[4],
+            "unit": max_rep_tuple[5]
+        },
+        "average_weight": aw_ar_tr_tw[0],
+        "average_reps": aw_ar_tr_tw[1],
+        "total_sets": aw_ar_tr_tw[2],
+        "total_weight": aw_ar_tr_tw[3],
         "projected_one_rep": {
-            "weight": max_one_rep_set.weight,
-            "reps": max_one_rep_set.repetition,
-            "max_weight": max_one_rep
-        }
-    })
+             "weight": max_one_rep_set.weight,
+             "reps": max_one_rep_set.repetition,
+             "max_weight": one_rep_max(max_one_rep_set)
+         }
+    }
+
+    # return jsonify({
+    #     "max_weight": jsonify_object(max_weight, Sets),
+    #     "max_reps": jsonify_object(max_rep, Sets),
+    #     "average_reps": sum_reps/count,
+    #     "average_weight": sum_weight/count,
+    #     "total_sets": count,
+    #     "projected_one_rep": {
+    #         "weight": max_one_rep_set.weight,
+    #         "reps": max_one_rep_set.repetition,
+    #         "max_weight": one_rep_max(max_one_rep_set)
+    #     }
+    # })
 
 
 @app.route('/user/workouts/date',methods=['POST'])
