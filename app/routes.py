@@ -249,7 +249,6 @@ def delete_set(set_id):
 @jwt_required
 def get_user_exercise_list():
     id = get_jwt_identity()
-    print(id)
     my_workouts = Workout.query.filter_by(user_id=id).all()
     exercise_tuple_list = Workout.query.with_entities(Exercise.name, Exercise.id).join(WorkoutExercise).filter(Workout.user_id == id).distinct().all()
     all_my_exercises = [{"id": exercise[1], "name": exercise[0]} for exercise in exercise_tuple_list]
@@ -264,9 +263,10 @@ def get_user_exercise_list():
 # Sets.query.with_entities(func.sum(Sets.repetition), Sets.weight).group_by(Sets.weight).all()
 # Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==1).filter(WorkoutExercise.exercise_id==1).with_entities(func.sum(Sets.repetition)).all()
 # [(34, 15), (48, 25), (36, 40), (31, 45), (144, 55), (47, 65), (32, 75), (48, 80), (53, 85), (107, 90), (48, 100), (24, 105), (132, 115), (24, 120), (263, 135), (16, 145), (135, 155), (64, 165), (32, 180), (135, 185), (8, 200), (22, 210), (355, 225), (8, 228)]
-@app.route('/user/<id>/exercise/<e_id>')
-def get_user_exercise_stats(id, e_id):
-    print(e_id)
+@app.route('/user/exercise/<e_id>')
+@jwt_required
+def get_user_exercise_stats(e_id):
+    id = get_jwt_identity()
     my_workouts = Workout.query.filter_by(user_id=id).all()
     all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
 
@@ -284,15 +284,24 @@ def get_user_exercise_stats(id, e_id):
     sum_of_reps_by_weight = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id == id).filter(
         WorkoutExercise.exercise_id == e_id).with_entities(func.sum(Sets.repetition), Sets.weight).group_by(
         Sets.weight).all()
+
     max_rep_tuple = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id== id).filter(WorkoutExercise.exercise_id==e_id)\
-        .with_entities(func.max(Sets.repetition), func.max(Sets.weight), Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.weight).first()
+        .with_entities(func.max(Sets.repetition), Sets.weight, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.weight).first()
+
     max_weight_tuple = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
-        .with_entities(func.max(Sets.weight), func.max(Sets.repetition), Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.repetition).first()
+        .with_entities(func.max(Sets.weight), Sets.repetition, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.repetition).first()
+
     # tuple consisting of average weight, average reps, total reps, total weights
     aw_ar_tr_tw =  Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
         .with_entities(func.avg(Sets.weight), func.avg(Sets.repetition), func.sum(Sets.repetition), func.sum(Sets.weight)).first()
 
-    max_rep, max_weight, max_combination, max_one_rep_set = all_sets[0], all_sets[0], all_sets[0], all_sets[0]
+    max_one_rep_set = all_sets[0]
+    reps = []
+    weight = []
+    for frequency in sum_of_reps_by_weight:
+        reps.append(frequency[0])
+        weight.append(frequency[1])
+
 
     for current_set in all_sets:
         if one_rep_max(current_set) >= one_rep_max(max_one_rep_set):
@@ -322,7 +331,10 @@ def get_user_exercise_stats(id, e_id):
              "weight": max_one_rep_set.weight,
              "reps": max_one_rep_set.repetition,
              "max_weight": one_rep_max(max_one_rep_set)
-         }
+         },
+        "reps_by_weight": [{"totalReps": i[0], "weight": i[1]} for i in sum_of_reps_by_weight],
+        "reps": reps,
+        "weight": weight
     }
 
     # return jsonify({
@@ -399,14 +411,17 @@ def get_set_in_progress():
     id = get_jwt_identity()
     latest_user_workout = Workout.query.filter_by(user_id=id).order_by(Workout.id.desc()).first()
     if latest_user_workout and latest_user_workout.end_time is None:  # existing workout
-        current_workout_exercise = WorkoutExercise.query.filter_by(workout_id=latest_user_workout.id).first()
+        current_workout_exercise = WorkoutExercise.query.filter_by(workout_id=latest_user_workout.id).order_by(WorkoutExercise.order.desc()).first()
         if current_workout_exercise is None or current_workout_exercise.completed:
             return {
                 "error": "there is no workout in progress"
             }, 500
         else:
+            current_exercise = Exercise.query.get(current_workout_exercise.exercise_id).name
             return {
-                Exercise.query.get(current_workout_exercise.exercise_id).name : [jsonify_object(a_set, Sets) for a_set in current_workout_exercise.sets]
+                current_exercise : [jsonify_object(a_set, Sets) for a_set in current_workout_exercise.sets],
+                "current_exercise" : current_exercise,
+                "workout_exercise_id" : current_workout_exercise.id
             }, 200
     else:
         return {
