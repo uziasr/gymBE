@@ -1,7 +1,7 @@
 from app.models import Muscle, Exercise
 from app import db
 
-major_muscle_group = ['Quadriceps', 'Hamstrings',
+major_muscle_group = ['', 'Hamstrings',
                       'Calves', 'Chest',
                       'Back', 'Shoulders',
                       'Triceps', 'Biceps',
@@ -56,6 +56,7 @@ def seed_muscles():
 def seed_exercises():
     for exercise in master_exercises:
         db.session.add(Exercise(name=exercise[0], muscle_id=exercise[1]))
+        db.session.commit()
 
 seed_muscles()
 seed_exercises()
