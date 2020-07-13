@@ -151,14 +151,17 @@ def complete_exercise(workout_exercise_id):
     }, 204
 
 
-@app.route('/workout/exercise/<id>/set', methods=['POST'])
+@app.route('/workout/exercise/<id>/set', methods=['POST', 'PATCH'])
 def add_set(id):
-    req = request.get_json()
-    order = len(WorkoutExercise.query.get(id).sets) + 1
-    new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
-    db.session.add(new_set)
-    db.session.commit()
-    return jsonify_object(instance=new_set, cls=Sets), 201
+    if request.method == 'POST':
+        req = request.get_json()
+        order = len(WorkoutExercise.query.get(id).sets) + 1
+        new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
+        db.session.add(new_set)
+        db.session.commit()
+        return jsonify_object(instance=new_set, cls=Sets), 201
+    if request.method == 'PATCH':
+        pass
 
 @app.route('/workout/<id>')
 def get_workout(id):
@@ -259,26 +262,17 @@ def get_user_exercise_list():
         "dates": [date_formatter(d) for d in dates],
         "total_workouts": len(dates)
                     })
-# WorkoutExercise.query.with_entities(func.avg(WorkoutExercise.order)).first()
-# Sets.query.with_entities(func.sum(Sets.repetition), Sets.weight).group_by(Sets.weight).all()
-# Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==1).filter(WorkoutExercise.exercise_id==1).with_entities(func.sum(Sets.repetition)).all()
-# [(34, 15), (48, 25), (36, 40), (31, 45), (144, 55), (47, 65), (32, 75), (48, 80), (53, 85), (107, 90), (48, 100), (24, 105), (132, 115), (24, 120), (263, 135), (16, 145), (135, 155), (64, 165), (32, 180), (135, 185), (8, 200), (22, 210), (355, 225), (8, 228)]
+
+
 @app.route('/user/exercise/<e_id>')
 @jwt_required
 def get_user_exercise_stats(e_id):
     id = get_jwt_identity()
-    my_workouts = Workout.query.filter_by(user_id=id).all()
-    all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
 
-    filtered_by_exercise = list(filter(lambda x: x and x.exercise_id == int(e_id), all_my_workout_exercises))
-    if len(filtered_by_exercise) == 0:
-        return {"error": "no information available"}, 500
+    all_sets_by_exercise = Sets.query.join(WorkoutExercise, Workout, Exercise).filter(Workout.user_id == id).filter(
+        WorkoutExercise.exercise_id == e_id).with_entities(Sets).all()
 
-    all_sets = []
-    for exercise in filtered_by_exercise:
-        all_sets = [*all_sets, *exercise.sets]
-
-    if len(all_sets) == 0:
+    if len(all_sets_by_exercise) == 0:
         return {"error": "no information available"}, 500
 
     sum_of_reps_by_weight = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id == id).filter(
@@ -292,10 +286,10 @@ def get_user_exercise_stats(e_id):
         .with_entities(func.max(Sets.weight), Sets.repetition, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.repetition).first()
 
     # tuple consisting of average weight, average reps, total reps, total weights
-    aw_ar_tr_tw =  Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
+    aw_ar_tr_tw = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
         .with_entities(func.avg(Sets.weight), func.avg(Sets.repetition), func.sum(Sets.repetition), func.sum(Sets.weight)).first()
 
-    max_one_rep_set = all_sets[0]
+    max_one_rep_set = all_sets_by_exercise[0]
     reps = []
     weight = []
     for frequency in sum_of_reps_by_weight:
@@ -303,7 +297,7 @@ def get_user_exercise_stats(e_id):
         weight.append(frequency[1])
 
 
-    for current_set in all_sets:
+    for current_set in all_sets_by_exercise:
         if one_rep_max(current_set) >= one_rep_max(max_one_rep_set):
             max_one_rep_set = current_set
     return {
