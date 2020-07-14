@@ -151,17 +151,48 @@ def complete_exercise(workout_exercise_id):
     }, 204
 
 
-@app.route('/workout/exercise/<id>/set', methods=['POST', 'PATCH'])
-def add_set(id):
+@app.route('/workout/exercise/<id>/set', methods=['POST', 'PATCH', 'DELETE'])
+def manage_set(id):
+    req = request.get_json()
+    print("this is req",req)
+    current_workout_exercise = WorkoutExercise.query.get(id)
     if request.method == 'POST':
-        req = request.get_json()
-        order = len(WorkoutExercise.query.get(id).sets) + 1
+        order = len(current_workout_exercise.sets) + 1
         new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
         db.session.add(new_set)
         db.session.commit()
         return jsonify_object(instance=new_set, cls=Sets), 201
-    if request.method == 'PATCH':
-        pass
+    elif request.method == 'PATCH':
+        current_set = Sets.query.get(req["id"])
+        current_set.repetition, current_set.weight, current_set.unit = req["repetition"], req["weight"], req["unit"]
+        db.session.commit()
+        return jsonify_object(current_set, Sets)
+    elif request.method == "DELETE":
+        current_set = Sets.query.get(req["id"])
+        for a_set in current_workout_exercise.sets:
+            if current_set.set_order < a_set.set_order:
+                a_set.set_order -= 1
+                db.session.commit()
+        db.session.delete(current_set)
+        db.session.commit()
+        return jsonify([jsonify_object(a_set) for a_set in WorkoutExercise.query.get(id)])
+
+@app.route('/workout/exercise/<id>/set/<set_id>', methods=['DELETE'])
+@jwt_required
+def delete_set(id, set_id):
+    current_workout_exercise = WorkoutExercise.query.get(id)
+    current_set = Sets.query.get(set_id)
+    if not current_set:
+        return {
+            "error": "this set does not exist"
+        }, 500
+    for a_set in current_workout_exercise.sets:
+        if current_set.set_order < a_set.set_order:
+            a_set.set_order -= 1
+            db.session.commit()
+    db.session.delete(current_set)
+    db.session.commit()
+    return jsonify([jsonify_object(a_set, Sets) for a_set in WorkoutExercise.query.get(id).sets])
 
 @app.route('/workout/<id>')
 def get_workout(id):
@@ -238,15 +269,15 @@ def delete_exercise(id, exercise_id):
         "exercise": deleted_exercise_dict
     }
 
-@app.route('/sets/<set_id>', methods=['DELETE'])
-def delete_set(set_id):
-    deleted_set = Sets.query.get(set_id)
-    delete_set_dict = jsonify_object(delete_set, Sets)
-    deleted_set.delete()
-    return {
-        "message":" successful",
-        "set": delete_set_dict
-    }
+# @app.route('/sets/<set_id>', methods=['DELETE'])
+# def delete_set(set_id):
+#     deleted_set = Sets.query.get(set_id)
+#     delete_set_dict = jsonify_object(delete_set, Sets)
+#     deleted_set.delete()
+#     return {
+#         "message":" successful",
+#         "set": delete_set_dict
+#     }
 
 @app.route('/user/exercise')
 @jwt_required
