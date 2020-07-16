@@ -5,6 +5,7 @@ from sqlalchemy import func
 from app import (jwt_required, create_access_token,
     get_jwt_identity)
 from datetime import datetime, timedelta
+from itertools import zip_longest
 
 
 def jsonify_object(instance, cls, remove_keys=[]):
@@ -71,7 +72,6 @@ def sign_in():
             "error": "A user by that email of '{}' does not exist".format(user_info["email"])
                }, 400
     # if hashing.check_value(h, "password", salt="hello)"
-    print(hashing.check_value(saved_user.password, user_info["password"], salt="salt"))
     if hashing.check_value(saved_user.password, user_info["password"], salt="salt"):
         expires = timedelta(days=365)
         token = create_access_token(identity=saved_user.id, expires_delta = expires)
@@ -129,10 +129,7 @@ def add_exercise(id):
     # id should either be passed through url or through json
     new_exercise = request.get_json()
     order = len(Workout.query.get(id).workout_exercise) + 1
-    print(new_exercise["exercise"])
     exercise_id = Exercise.query.filter_by(name=new_exercise["exercise"]).first().id
-    print(exercise_id)
-    print(Exercise.query.get(exercise_id))
     new_workout_exercise = WorkoutExercise(workout_id=id, exercise_id=exercise_id, order=order)
     db.session.add(new_workout_exercise)
     db.session.commit()
@@ -154,7 +151,6 @@ def complete_exercise(workout_exercise_id):
 @app.route('/workout/exercise/<id>/set', methods=['POST', 'PATCH', 'DELETE'])
 def manage_set(id):
     req = request.get_json()
-    print("this is req",req)
     current_workout_exercise = WorkoutExercise.query.get(id)
     if request.method == 'POST':
         order = len(current_workout_exercise.sets) + 1
@@ -194,7 +190,7 @@ def delete_set(id, set_id):
     db.session.commit()
     return jsonify([jsonify_object(a_set, Sets) for a_set in WorkoutExercise.query.get(id).sets])
 
-@app.route('/workout/<id>')
+@app.route('/`workout/`<id>')
 def get_workout(id):
     #!!
     # gets exercises by name for a give workout
@@ -207,11 +203,12 @@ def get_workout(id):
     }
 
 
-@app.route('/workout/<id>/set')
-def get_full_workout(id):
+@app.route('/workout/<workout_id>/set')
+@jwt_required
+def get_full_workout(workout_id):
+    user_id = get_jwt_identity()
     # where id comes from WorkoutExercise
-    workout_exercise_list = WorkoutExercise.query.filter_by(workout_id=id).all()
-    print(workout_exercise_list)
+    workout_exercise_list = WorkoutExercise.query.filter_by(workout_id=workout_id).all()
     if len(workout_exercise_list) == 0:
         return {
             "error": "this workout contains no exercises yet"
@@ -221,13 +218,16 @@ def get_full_workout(id):
     for exercise in workout_exercise_list:
         set_list = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
         exercise_name = Exercise.query.get(exercise.exercise_id).name
-        print(exercise_name)
+        all_workouts_with_exercise = WorkoutExercise.query.join(Workout).filter(Workout.user_id == user_id).filter(WorkoutExercise.exercise_id == exercise.exercise_id).all()
         exercise_sets = {
             "exercise": exercise_name,
             "muscle": Muscle.query.filter_by(id = Exercise.query.get(exercise.exercise_id).muscle_id).first().name,
             "order": exercise.order,
-            "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
+            "sets": [{**jsonify_object(sets, Sets), "max": one_rep_max(sets)} for sets in set_list],
+            "previous_sets": []
         }
+        if len(all_workouts_with_exercise) > 1:
+            exercise_sets["previous_sets"] = [jsonify_object(sets, Sets) for sets in all_workouts_with_exercise[-2].sets][:len(set_list)]
         complete_workout.append(exercise_sets)
     return jsonify(complete_workout)
 
@@ -380,7 +380,6 @@ def get_user_exercise_stats(e_id):
 @jwt_required
 def get_workout_by_date():
     id = get_jwt_identity()
-    print(id)
     date = request.get_json()['date'] # format will be 2020-05-11
     year, month, day = date.split('-')
     formatted_date = datetime(int(year), int(month), int(day))
