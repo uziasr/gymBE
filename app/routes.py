@@ -5,6 +5,7 @@ from sqlalchemy import func
 from app import (jwt_required, create_access_token,
     get_jwt_identity)
 from datetime import datetime, timedelta
+from itertools import zip_longest
 
 
 def jsonify_object(instance, cls, remove_keys=[]):
@@ -71,7 +72,6 @@ def sign_in():
             "error": "A user by that email of '{}' does not exist".format(user_info["email"])
                }, 400
     # if hashing.check_value(h, "password", salt="hello)"
-    print(hashing.check_value(saved_user.password, user_info["password"], salt="salt"))
     if hashing.check_value(saved_user.password, user_info["password"], salt="salt"):
         expires = timedelta(days=365)
         token = create_access_token(identity=saved_user.id, expires_delta = expires)
@@ -129,10 +129,7 @@ def add_exercise(id):
     # id should either be passed through url or through json
     new_exercise = request.get_json()
     order = len(Workout.query.get(id).workout_exercise) + 1
-    print(new_exercise["exercise"])
     exercise_id = Exercise.query.filter_by(name=new_exercise["exercise"]).first().id
-    print(exercise_id)
-    print(Exercise.query.get(exercise_id))
     new_workout_exercise = WorkoutExercise(workout_id=id, exercise_id=exercise_id, order=order)
     db.session.add(new_workout_exercise)
     db.session.commit()
@@ -151,16 +148,49 @@ def complete_exercise(workout_exercise_id):
     }, 204
 
 
-@app.route('/workout/exercise/<id>/set', methods=['POST'])
-def add_set(id):
+@app.route('/workout/exercise/<id>/set', methods=['POST', 'PATCH', 'DELETE'])
+def manage_set(id):
     req = request.get_json()
-    order = len(WorkoutExercise.query.get(id).sets) + 1
-    new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
-    db.session.add(new_set)
-    db.session.commit()
-    return jsonify_object(instance=new_set, cls=Sets), 201
+    current_workout_exercise = WorkoutExercise.query.get(id)
+    if request.method == 'POST':
+        order = len(current_workout_exercise.sets) + 1
+        new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
+        db.session.add(new_set)
+        db.session.commit()
+        return jsonify_object(instance=new_set, cls=Sets), 201
+    elif request.method == 'PATCH':
+        current_set = Sets.query.get(req["id"])
+        current_set.repetition, current_set.weight, current_set.unit = req["repetition"], req["weight"], req["unit"]
+        db.session.commit()
+        return jsonify_object(current_set, Sets)
+    elif request.method == "DELETE":
+        current_set = Sets.query.get(req["id"])
+        for a_set in current_workout_exercise.sets:
+            if current_set.set_order < a_set.set_order:
+                a_set.set_order -= 1
+                db.session.commit()
+        db.session.delete(current_set)
+        db.session.commit()
+        return jsonify([jsonify_object(a_set) for a_set in WorkoutExercise.query.get(id)])
 
-@app.route('/workout/<id>')
+@app.route('/workout/exercise/<id>/set/<set_id>', methods=['DELETE'])
+@jwt_required
+def delete_set(id, set_id):
+    current_workout_exercise = WorkoutExercise.query.get(id)
+    current_set = Sets.query.get(set_id)
+    if not current_set:
+        return {
+            "error": "this set does not exist"
+        }, 500
+    for a_set in current_workout_exercise.sets:
+        if current_set.set_order < a_set.set_order:
+            a_set.set_order -= 1
+            db.session.commit()
+    db.session.delete(current_set)
+    db.session.commit()
+    return jsonify([jsonify_object(a_set, Sets) for a_set in WorkoutExercise.query.get(id).sets])
+
+@app.route('/`workout/`<id>')
 def get_workout(id):
     #!!
     # gets exercises by name for a give workout
@@ -173,11 +203,12 @@ def get_workout(id):
     }
 
 
-@app.route('/workout/<id>/set')
-def get_full_workout(id):
+@app.route('/workout/<workout_id>/set')
+@jwt_required
+def get_full_workout(workout_id):
+    user_id = get_jwt_identity()
     # where id comes from WorkoutExercise
-    workout_exercise_list = WorkoutExercise.query.filter_by(workout_id=id).all()
-    print(workout_exercise_list)
+    workout_exercise_list = WorkoutExercise.query.filter_by(workout_id=workout_id).all()
     if len(workout_exercise_list) == 0:
         return {
             "error": "this workout contains no exercises yet"
@@ -187,13 +218,16 @@ def get_full_workout(id):
     for exercise in workout_exercise_list:
         set_list = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
         exercise_name = Exercise.query.get(exercise.exercise_id).name
-        print(exercise_name)
+        all_workouts_with_exercise = WorkoutExercise.query.join(Workout).filter(Workout.user_id == user_id).filter(WorkoutExercise.exercise_id == exercise.exercise_id).all()
         exercise_sets = {
             "exercise": exercise_name,
             "muscle": Muscle.query.filter_by(id = Exercise.query.get(exercise.exercise_id).muscle_id).first().name,
             "order": exercise.order,
-            "sets": [jsonify_object(sets, Sets, ['workout_exercise_id']) for sets in set_list]
+            "sets": [{**jsonify_object(sets, Sets), "max": one_rep_max(sets)} for sets in set_list],
+            "previous_sets": []
         }
+        if len(all_workouts_with_exercise) > 1:
+            exercise_sets["previous_sets"] = [jsonify_object(sets, Sets) for sets in all_workouts_with_exercise[-2].sets][:len(set_list)]
         complete_workout.append(exercise_sets)
     return jsonify(complete_workout)
 
@@ -235,15 +269,15 @@ def delete_exercise(id, exercise_id):
         "exercise": deleted_exercise_dict
     }
 
-@app.route('/sets/<set_id>', methods=['DELETE'])
-def delete_set(set_id):
-    deleted_set = Sets.query.get(set_id)
-    delete_set_dict = jsonify_object(delete_set, Sets)
-    deleted_set.delete()
-    return {
-        "message":" successful",
-        "set": delete_set_dict
-    }
+# @app.route('/sets/<set_id>', methods=['DELETE'])
+# def delete_set(set_id):
+#     deleted_set = Sets.query.get(set_id)
+#     delete_set_dict = jsonify_object(delete_set, Sets)
+#     deleted_set.delete()
+#     return {
+#         "message":" successful",
+#         "set": delete_set_dict
+#     }
 
 @app.route('/user/exercise')
 @jwt_required
@@ -259,26 +293,17 @@ def get_user_exercise_list():
         "dates": [date_formatter(d) for d in dates],
         "total_workouts": len(dates)
                     })
-# WorkoutExercise.query.with_entities(func.avg(WorkoutExercise.order)).first()
-# Sets.query.with_entities(func.sum(Sets.repetition), Sets.weight).group_by(Sets.weight).all()
-# Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==1).filter(WorkoutExercise.exercise_id==1).with_entities(func.sum(Sets.repetition)).all()
-# [(34, 15), (48, 25), (36, 40), (31, 45), (144, 55), (47, 65), (32, 75), (48, 80), (53, 85), (107, 90), (48, 100), (24, 105), (132, 115), (24, 120), (263, 135), (16, 145), (135, 155), (64, 165), (32, 180), (135, 185), (8, 200), (22, 210), (355, 225), (8, 228)]
+
+
 @app.route('/user/exercise/<e_id>')
 @jwt_required
 def get_user_exercise_stats(e_id):
     id = get_jwt_identity()
-    my_workouts = Workout.query.filter_by(user_id=id).all()
-    all_my_workout_exercises = [WorkoutExercise.query.get(workout.id) for workout in my_workouts]
 
-    filtered_by_exercise = list(filter(lambda x: x and x.exercise_id == int(e_id), all_my_workout_exercises))
-    if len(filtered_by_exercise) == 0:
-        return {"error": "no information available"}, 500
+    all_sets_by_exercise = Sets.query.join(WorkoutExercise, Workout, Exercise).filter(Workout.user_id == id).filter(
+        WorkoutExercise.exercise_id == e_id).with_entities(Sets).all()
 
-    all_sets = []
-    for exercise in filtered_by_exercise:
-        all_sets = [*all_sets, *exercise.sets]
-
-    if len(all_sets) == 0:
+    if len(all_sets_by_exercise) == 0:
         return {"error": "no information available"}, 500
 
     sum_of_reps_by_weight = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id == id).filter(
@@ -292,10 +317,10 @@ def get_user_exercise_stats(e_id):
         .with_entities(func.max(Sets.weight), Sets.repetition, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.repetition).first()
 
     # tuple consisting of average weight, average reps, total reps, total weights
-    aw_ar_tr_tw =  Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
+    aw_ar_tr_tw = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
         .with_entities(func.avg(Sets.weight), func.avg(Sets.repetition), func.sum(Sets.repetition), func.sum(Sets.weight)).first()
 
-    max_one_rep_set = all_sets[0]
+    max_one_rep_set = all_sets_by_exercise[0]
     reps = []
     weight = []
     for frequency in sum_of_reps_by_weight:
@@ -303,7 +328,7 @@ def get_user_exercise_stats(e_id):
         weight.append(frequency[1])
 
 
-    for current_set in all_sets:
+    for current_set in all_sets_by_exercise:
         if one_rep_max(current_set) >= one_rep_max(max_one_rep_set):
             max_one_rep_set = current_set
     return {
@@ -355,7 +380,6 @@ def get_user_exercise_stats(e_id):
 @jwt_required
 def get_workout_by_date():
     id = get_jwt_identity()
-    print(id)
     date = request.get_json()['date'] # format will be 2020-05-11
     year, month, day = date.split('-')
     formatted_date = datetime(int(year), int(month), int(day))
