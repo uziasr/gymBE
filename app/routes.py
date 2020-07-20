@@ -125,11 +125,17 @@ def end_workout(id):
 
 @app.route('/workout/<id>/exercise', methods=['POST'])
 def add_exercise(id):
-    # exercise is coming in as a string and should be looked up in table
-    # id should either be passed through url or through json
     new_exercise = request.get_json()
-    order = len(Workout.query.get(id).workout_exercise) + 1
+    all_exercises_in_workout = WorkoutExercise.query.filter_by(workout_id=id).order_by(WorkoutExercise.order).all()
+
+    if len(all_exercises_in_workout):
+        latest_exercise = all_exercises_in_workout[-1]
+        if len(latest_exercise.sets) == 0:
+            db.session.delete(latest_exercise)
+            db.session.commit()
+
     exercise_id = Exercise.query.filter_by(name=new_exercise["exercise"]).first().id
+    order = len(Workout.query.get(id).workout_exercise) + 1
     new_workout_exercise = WorkoutExercise(workout_id=id, exercise_id=exercise_id, order=order)
     db.session.add(new_workout_exercise)
     db.session.commit()
@@ -259,25 +265,24 @@ def get_all_exercises():
     return jsonify(exercise_with_muscle)
 
 
-@app.route('/workout/<id>/exercise/<exercise_id>', methods=['DELETE'])
-def delete_exercise(id, exercise_id):
-    deleted_exercise = WorkoutExercise.query.get(exercise_id)
-    deleted_exercise_dict = jsonify_object(deleted_exercise, WorkoutExercise)
-    deleted_exercise.delete()
-    return {
-        "message": "successful",
-        "exercise": deleted_exercise_dict
-    }
-
-# @app.route('/sets/<set_id>', methods=['DELETE'])
-# def delete_set(set_id):
-#     deleted_set = Sets.query.get(set_id)
-#     delete_set_dict = jsonify_object(delete_set, Sets)
-#     deleted_set.delete()
-#     return {
-#         "message":" successful",
-#         "set": delete_set_dict
-#     }
+@app.route('/workout/exercise/<workout_exercise_id>', methods=['DELETE'])
+@jwt_required
+def delete_exercise(workout_exercise_id):
+    id = get_jwt_identity()
+    deleted_exercise = WorkoutExercise.query.get(workout_exercise_id)
+    workout = Workout.query.get(deleted_exercise.workout_id)
+    if workout.user_id == id:
+        deleted_exercise_dict = jsonify_object(deleted_exercise, WorkoutExercise)
+        db.session.delete(deleted_exercise)
+        db.session.commit()
+        return {
+            "message": "successful",
+            "exercise": deleted_exercise_dict
+        }
+    else:
+        return {
+            "error": "you cannot delete this exercise"
+        }, 204
 
 @app.route('/user/exercise')
 @jwt_required
@@ -361,19 +366,6 @@ def get_user_exercise_stats(e_id):
         "reps": reps,
         "weight": weight
     }
-
-    # return jsonify({
-    #     "max_weight": jsonify_object(max_weight, Sets),
-    #     "max_reps": jsonify_object(max_rep, Sets),
-    #     "average_reps": sum_reps/count,
-    #     "average_weight": sum_weight/count,
-    #     "total_sets": count,
-    #     "projected_one_rep": {
-    #         "weight": max_one_rep_set.weight,
-    #         "reps": max_one_rep_set.repetition,
-    #         "max_weight": one_rep_max(max_one_rep_set)
-    #     }
-    # })
 
 
 @app.route('/user/workouts/date',methods=['POST'])
