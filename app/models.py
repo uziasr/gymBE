@@ -8,6 +8,10 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(60), unique=False, nullable=False)
     workouts = db.relationship('Workout', backref='user', lazy=True, cascade="delete")
+    schedule = db.relationship('Schedule', backref='schedule_user', lazy=True, cascade="delete")
+    saved_workouts = db.relationship("SavedWorkout", backref='saved_workout_user', lazy=True, cascade="delete")
+    workout_templates = db.relationship("WorkoutTemplate", backref="templates", lazy=True)
+
 
     def __repr__(self):
         return f"User('{self.id}' '{self.name}','{self.email}')"
@@ -79,31 +83,31 @@ class WorkoutMuscle(db.Model):
 
 class SavedWorkout(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
-    name = db.Column(db.String(15), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    workout_template_id = db.Column(db.Integer, db.ForeignKey("workout_template.id"), nullable=False)
 
     def __repr__(self):
-        return f"SavedWorkout({self.id}, name: {self.name}, user_id: {self.user_id}, author_id: {self.author_id})"
-
-
-class Schedule(db.Model):
-    id = db.Column(db.integer, primary_key=True, nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    saved_workout_id = db.Column(db.Integer, db.ForeignKey('SavedWorkout.id'), nullable=False)
-
-    def __repr__(self):
-        return f"Schedule({self.id}, date: {self.date}, user_id:P {self.user_id}, saved_workout_id: {self.saved_workout_id})"
+        return f"SavedWorkout({self.id}, user_id: {self.user_id}, workout_template_id: {self.workout_template_id})"
 
 
 class SavedWorkoutExercise(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
+    template_id = db.Column(db.Integer, db.ForeignKey('workout_template.id'), nullable=False)
     order = db.Column(db.Integer, nullable=False)
 
     def __repr__(self):
         return f"SavedWorkoutExercise({self.id}, exercise_id: {self.exercise_id}, order: {self.order})"
+
+
+class Schedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    template_id = db.Column(db.Integer, db.ForeignKey('workout_template.id'), nullable=False)
+
+    def __repr__(self):
+        return f"Schedule({self.id}, date: {self.date}, user_id:P {self.user_id}, saved_workout_id: {self.saved_workout_id})"
 
 
 class SavedWorkoutMuscle(db.Model):
@@ -114,3 +118,13 @@ class SavedWorkoutMuscle(db.Model):
     def __repr__(self):
         return f"SavedWorkoutMuscle({self.id}, saved_workout_id: {self.saved_workout_id}, muscle_id: {self.muscle_id})"
 
+
+class WorkoutTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    name = db.Column(db.String(15), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    schedule = db.relationship("Schedule", backref="saved_workout", lazy=True, cascade="delete")
+    saved_workout_exercise = db.relationship("SavedWorkoutExercise", backref="saved_workout_exercise", cascade="delete")
+
+    def __repr__(self):
+        return f"WorkoutTemplate({self.id}, name:{self.name}, author_id: {self.author_id})"

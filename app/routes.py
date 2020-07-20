@@ -1,5 +1,5 @@
 from app import app, db, hashing
-from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, WorkoutExercise
+from app.models import *
 from flask import request, jsonify, Response
 from sqlalchemy import func
 from app import (jwt_required, create_access_token,
@@ -34,7 +34,8 @@ def get_muscles():
     muscles_list = [muscle.name for muscle in muscles]
     return " ".join(muscles_list)
 
-#START For user registration and login
+
+# START For user registration and login
 @app.route('/user/signup', methods=['POST'])
 def create_user():
     user_info = request.get_json()
@@ -443,3 +444,12 @@ def get_set_in_progress():
         return {
                    "error": "there is not workout in progress"
                }, 500
+
+
+@app.route("/saved/workout", methods=['POST'])
+@jwt_required
+def create_saved_workout():
+    user_id = get_jwt_identity()
+    req = request.get_json()
+    new_saved_workout = SavedWorkout(name=req['name'], user_id=id, author_id=id)
+    pass
