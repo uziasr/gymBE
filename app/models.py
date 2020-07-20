@@ -75,3 +75,42 @@ class WorkoutMuscle(db.Model):
     def __repr__(self):
         # return f"WorkoutMuscle(id: {self.id}, workout_id: {self.workout_id}, muscle_group_id: {self.muscle_group_id})"
         return f"{Muscle.query.get(self.muscle_group_id).name}"
+
+
+class SavedWorkout(db.Model):
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    name = db.Column(db.String(15), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f"SavedWorkout({self.id}, name: {self.name}, user_id: {self.user_id}, author_id: {self.author_id})"
+
+
+class Schedule(db.Model):
+    id = db.Column(db.integer, primary_key=True, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    saved_workout_id = db.Column(db.Integer, db.ForeignKey('SavedWorkout.id'), nullable=False)
+
+    def __repr__(self):
+        return f"Schedule({self.id}, date: {self.date}, user_id:P {self.user_id}, saved_workout_id: {self.saved_workout_id})"
+
+
+class SavedWorkoutExercise(db.Model):
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    exercise_id = db.Column(db.Integer, db.ForeignKey('exercise.id'), nullable=False)
+    order = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"SavedWorkoutExercise({self.id}, exercise_id: {self.exercise_id}, order: {self.order})"
+
+
+class SavedWorkoutMuscle(db.Model):
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    saved_workout_id = db.Column(db.Integer, db.ForeignKey('saved_workout.id'), nullable=False)
+    muscle_id = db.Column(db.Integer, db.ForeignKey("muscle.id"), nullable=False)
+
+    def __repr__(self):
+        return f"SavedWorkoutMuscle({self.id}, saved_workout_id: {self.saved_workout_id}, muscle_id: {self.muscle_id})"
+
