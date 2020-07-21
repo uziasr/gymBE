@@ -471,6 +471,7 @@ def add_saved_workout_exercise(template_id):
             return jsonify([jsonify_object(swe, SavedWorkoutExercise) for swe in current_template.saved_workout_exercise])
         if request.method == 'PATCH':
             current_template.complete = True
+            SavedWorkout(template_id=template_id, user_id=user_id)
             db.session.commit()
             return jsonify_object(current_template, WorkoutTemplate)
     else:
@@ -497,12 +498,31 @@ def delete_saved_workout_exercise(saved_workout_exercise_id):
 
 
 
-@app.route("", methods=['PATCH'])
-@jwt_required
-def update_order():
-    pass
+# @app.route("", methods=['PATCH'])
+# @jwt_required
+# def update_order():
+#     pass
 
-@app.route("", methods=['POST'])
+@app.route("/workout/schedule", methods=['POST', 'GET'])
 @jwt_required
-def create_schedule():
-    pass
+def set_schedule():
+    if request.method == "POST":
+        user_id = get_jwt_identity()
+        req = request.get_json()
+        for workout in req["workouts"]:
+            Schedule(date=datetime.strptime(req['date'], '%m %d %Y'), user_id=user_id, template_id=workout.workout_template_id)
+            db.session.commit()
+        return {
+            "message":"success"
+        }
+
+
+@app.route('/datetest', methods=['POST'])
+def date_test():
+    req = request.get_json()
+    # print(req['date'].split('-'))
+    formatted_date = datetime.strptime(req['date'], '%m %d %Y')
+    print(formatted_date)
+    return {
+        "hey":"yo"
+    }
