@@ -456,10 +456,53 @@ def create_template_workout():
     return jsonify_object(new_template, WorkoutTemplate), 201
 
 
-@app.route("/saved/workout/<template_id>/exercise", methods=['POST'])
+@app.route("/workout/template/<template_id>/exercise", methods=['POST', 'PATCH'])
 @jwt_required
-def manage_saved_we(template_id):
+def add_saved_workout_exercise(template_id):
     user_id = get_jwt_identity()
     req = request.get_json()
-    exercise_id = Exercise.query.filter_by(name=req["exercise"]).first().id
-    SavedWorkoutExercise(template_id=template_id)
+    current_template = WorkoutTemplate.query.get(template_id)
+    if current_template.author_id == user_id:
+        if request.method == 'POST':
+            exercise_id = Exercise.query.filter_by(name=req["exercise"]).first().id
+            length_of_workout = len(current_template.saved_workout_exercise)
+            SavedWorkoutExercise(template_id=template_id, exercise_id=exercise_id, order= length_of_workout + 1)
+            db.session.commit()
+            return jsonify([jsonify_object(swe, SavedWorkoutExercise) for swe in current_template.saved_workout_exercise])
+        if request.method == 'PATCH':
+            current_template.complete = True
+            db.session.commit()
+            return jsonify_object(current_template, WorkoutTemplate)
+    else:
+        return {"error": "This template does not belong to you"}, 500
+
+
+
+
+@app.route("/workout/template/exercise/<saved_workout_exercise_id>", methods=['DELETE'])
+@jwt_required
+def delete_saved_workout_exercise(saved_workout_exercise_id):
+    user_id = get_jwt_identity()
+    current_swe = SavedWorkoutExercise.query.get(saved_workout_exercise_id)
+    current_workout_template = WorkoutTemplate.query.get(current_swe.template_id)
+    if user_id == current_workout_template.author_id:
+        template_length = len(current_workout_template.saved_workout_exercise)
+        for saved_we in current_workout_template[current_swe.order:]:
+            saved_we.order -= 1
+            db.session.commit()
+        db.session.delete(current_swe)
+        return jsonify([jsonify_object(swe, SavedWorkoutExercise) for swe in current_workout_template.saved_workout_exercise])
+    else:
+        return {"error":"This workout exercise is not yours to delete"}, 500
+
+
+
+@app.route("", methods=['PATCH'])
+@jwt_required
+def update_order():
+    pass
+
+@app.route("", methods=['POST'])
+@jwt_required
+def create_schedule():
+    pass

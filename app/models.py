@@ -112,7 +112,7 @@ class Schedule(db.Model):
 
 class SavedWorkoutMuscle(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
-    saved_workout_id = db.Column(db.Integer, db.ForeignKey('saved_workout.id'), nullable=False)
+    template_id = db.Column(db.Integer, db.ForeignKey('workout_template.id'), nullable=False)
     muscle_id = db.Column(db.Integer, db.ForeignKey("muscle.id"), nullable=False)
 
     def __repr__(self):
@@ -126,6 +126,7 @@ class WorkoutTemplate(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     schedule = db.relationship("Schedule", backref="saved_workout", lazy=True, cascade="delete")
     saved_workout_exercise = db.relationship("SavedWorkoutExercise", backref="saved_workout_exercise", cascade="delete")
+    muscles = db.relationship('SavedWorkoutMuscle', backref='saved_workout_muscle', lazy=True, cascade="delete")
 
     def __repr__(self):
         return f"WorkoutTemplate({self.id}, name:{self.name}, author_id: {self.author_id})"
