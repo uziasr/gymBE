@@ -448,8 +448,18 @@ def get_set_in_progress():
 
 @app.route("/saved/workout", methods=['POST'])
 @jwt_required
-def create_saved_workout():
+def create_template_workout():
     user_id = get_jwt_identity()
     req = request.get_json()
-    new_saved_workout = SavedWorkout(name=req['name'], user_id=id, author_id=id)
-    pass
+    new_template = WorkoutTemplate(name=req['name'], author_id=user_id)
+    db.session.commit()
+    return jsonify_object(new_template, WorkoutTemplate), 201
+
+
+@app.route("/saved/workout/<template_id>/exercise", methods=['POST'])
+@jwt_required
+def manage_saved_we(template_id):
+    user_id = get_jwt_identity()
+    req = request.get_json()
+    exercise_id = Exercise.query.filter_by(name=req["exercise"]).first().id
+    SavedWorkoutExercise(template_id=template_id)
