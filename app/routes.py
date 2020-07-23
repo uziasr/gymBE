@@ -526,3 +526,46 @@ def date_test():
     return {
         "hey":"yo"
     }
+
+
+@app.route('/saved/workout/<workout_id>', methods=['POST'])
+@jwt_required
+def create_full_saved_workout(workout_id):
+    user_id = get_jwt_identity()
+    req = request.get_json()
+
+    canvas_workout = Workout.query.get(workout_id)
+    canvas_muscles_trained = canvas_workout.muscles
+    canvas_we = canvas_workout.workout_exercise
+
+    if not len(canvas_muscles_trained) and not len(canvas_we):
+        return {
+            "error":"muscles or exercise from this workout are missing"
+        }, 500
+
+    new_workout_template = WorkoutTemplate(name=req['name'], author_id=user_id)
+    db.session.add(new_workout_template)
+    db.session.commit()
+
+    for muscle in canvas_muscles_trained:
+        muscle_id = Muscle.query.filter_by(name=muscle).first().id
+        db.session.add(SavedWorkoutMuscle(template_id=new_workout_template.id, muscle_id=muscle_id))
+        db.session.commit()
+    for workout_exercise in canvas_we:
+        db.session.add(SavedWorkoutExercise(exercise_id=workout_exercise.exercise_id, template_id=new_workout_template.id, order=workout_exercise.order))
+        db.session.commit()
+
+    db.session.add(SavedWorkout(user_id=user_id, workout_template_id=new_workout_template.id))
+    db.session.commit()
+
+    new_workout_template.complete = True
+    db.session.commit()
+    return {
+        "name": new_workout_template.name,
+        "user": User.query.get(user_id).name,
+        "muscles": new_workout_template.muscles,
+        "exercise_length": len(new_workout_template.saved_workout_exercise)
+    }
+
+
+
