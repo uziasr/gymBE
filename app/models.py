@@ -41,6 +41,7 @@ class Workout(db.Model):
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
     workout_exercise = db.relationship('WorkoutExercise', backref='workout_exercise', lazy=True, cascade="delete")
+    template_id = db.Column(db.Integer, db.ForeignKey('workout_template.id'), nullable=True)
     muscles = db.relationship('WorkoutMuscle', backref='workout_muscle', lazy=True, cascade="delete")
 
     def __repr__(self):
