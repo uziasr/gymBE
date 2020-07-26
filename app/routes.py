@@ -548,8 +548,7 @@ def create_full_saved_workout(workout_id):
     db.session.commit()
 
     for muscle in canvas_muscles_trained:
-        muscle_id = Muscle.query.filter_by(name=muscle).first().id
-        db.session.add(SavedWorkoutMuscle(template_id=new_workout_template.id, muscle_id=muscle_id))
+        db.session.add(SavedWorkoutMuscle(template_id=new_workout_template.id, muscle_id=muscle.id))
         db.session.commit()
     for workout_exercise in canvas_we:
         db.session.add(SavedWorkoutExercise(exercise_id=workout_exercise.exercise_id, template_id=new_workout_template.id, order=workout_exercise.order))
