@@ -531,6 +531,7 @@ def date_test():
 @app.route('/saved/workout/<workout_id>', methods=['POST'])
 @jwt_required
 def create_full_saved_workout(workout_id):
+    print("hello")
     user_id = get_jwt_identity()
     req = request.get_json()
 
@@ -562,9 +563,16 @@ def create_full_saved_workout(workout_id):
     return {
         "name": new_workout_template.name,
         "user": User.query.get(user_id).name,
-        "muscles": new_workout_template.muscles,
+        "muscles": [muscles.name for muscles in new_workout_template.muscles],
+        "muscles": [muscles.name for muscles in new_workout_template.muscles],
         "exercise_length": len(new_workout_template.saved_workout_exercise)
     }
 
+@app.route("/workout/saved")
+@jwt_required
+def get_saved_workouts():
+    user_id = get_jwt_identity()
+    my_saved_workout_templates = SavedWorkout.query.join(WorkoutTemplate, User).filter(SavedWorkout.id == user_id).with_entities(WorkoutTemplate).all()
+    return jsonify([ jsonify_object(template, WorkoutTemplate) for template in my_saved_workout_templates])
 
 

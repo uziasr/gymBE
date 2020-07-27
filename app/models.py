@@ -117,7 +117,7 @@ class SavedWorkoutMuscle(db.Model):
     muscle_id = db.Column(db.Integer, db.ForeignKey("muscle.id"), nullable=False)
 
     def __repr__(self):
-        return f"SavedWorkoutMuscle({self.id}, saved_workout_id: {self.saved_workout_id}, muscle_id: {self.muscle_id})"
+        return f"SavedWorkoutMuscle({self.id}, muscle_id: {self.muscle_id})"
 
 
 class WorkoutTemplate(db.Model):
