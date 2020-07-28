@@ -108,7 +108,7 @@ class Schedule(db.Model):
     template_id = db.Column(db.Integer, db.ForeignKey('workout_template.id'), nullable=False)
 
     def __repr__(self):
-        return f"Schedule({self.id}, date: {self.date}, user_id:P {self.user_id}, saved_workout_id: {self.saved_workout_id})"
+        return f"Schedule({self.id}, date: {self.date}, user_id:P {self.user_id}, saved_workout_id: {self.template_id})"
 
 
 class SavedWorkoutMuscle(db.Model):

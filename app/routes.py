@@ -84,7 +84,6 @@ def sign_in():
         return {
             "Error": "That is an incorrect password"
         }, 500
-#END
 
 
 @app.route('/user/workout', methods=['POST'])
@@ -105,6 +104,7 @@ def start_workout():
         db.session.commit()
     return {"id": new_workout.id}, 201
 
+
 @app.route('/workout/<id>/end')
 def end_workout(id):
     # id here can be the id of the user of it can be the id of the workout
@@ -123,6 +123,7 @@ def end_workout(id):
         "user_id" : current_workout.user_id,
         "start_time" : current_workout.start_time,
         "end_time" : current_workout.end_time}
+
 
 @app.route('/workout/<id>/exercise', methods=['POST'])
 def add_exercise(id):
@@ -144,6 +145,7 @@ def add_exercise(id):
         "id": new_workout_exercise.id,
         "exercise": new_exercise["exercise"],
     }, 201
+
 
 @app.route('/workout/<workout_exercise_id>/exercise', methods=['PATCH'])
 def complete_exercise(workout_exercise_id):
@@ -180,6 +182,7 @@ def manage_set(id):
         db.session.commit()
         return jsonify([jsonify_object(a_set) for a_set in WorkoutExercise.query.get(id)])
 
+
 @app.route('/workout/exercise/<id>/set/<set_id>', methods=['DELETE'])
 @jwt_required
 def delete_set(id, set_id):
@@ -196,18 +199,6 @@ def delete_set(id, set_id):
     db.session.delete(current_set)
     db.session.commit()
     return jsonify([jsonify_object(a_set, Sets) for a_set in WorkoutExercise.query.get(id).sets])
-
-@app.route('/`workout/`<id>')
-def get_workout(id):
-    #!!
-    # gets exercises by name for a give workout
-    # exercise_list = WorkoutExercise.query.get(id)
-    my_workout = WorkoutExercise.query.filter_by(workout_id=id).all()
-    my_workout.sort(key=lambda exercise: exercise.order)
-    exercise_list = [Exercise.query.get(i.exercise_id).name for i in my_workout]
-    return {
-        "exercises": exercise_list
-    }
 
 
 @app.route('/workout/<workout_id>/set')
@@ -497,37 +488,6 @@ def delete_saved_workout_exercise(saved_workout_exercise_id):
         return {"error":"This workout exercise is not yours to delete"}, 500
 
 
-
-# @app.route("", methods=['PATCH'])
-# @jwt_required
-# def update_order():
-#     pass
-
-@app.route("/workout/schedule", methods=['POST', 'GET'])
-@jwt_required
-def set_schedule():
-    if request.method == "POST":
-        user_id = get_jwt_identity()
-        req = request.get_json()
-        for workout in req["workouts"]:
-            Schedule(date=datetime.strptime(req['date'], '%m %d %Y'), user_id=user_id, template_id=workout.workout_template_id)
-            db.session.commit()
-        return {
-            "message":"success"
-        }
-
-
-@app.route('/datetest', methods=['POST'])
-def date_test():
-    req = request.get_json()
-    # print(req['date'].split('-'))
-    formatted_date = datetime.strptime(req['date'], '%m %d %Y')
-    print(formatted_date)
-    return {
-        "hey":"yo"
-    }
-
-
 @app.route('/saved/workout/<workout_id>', methods=['POST'])
 @jwt_required
 def create_full_saved_workout(workout_id):
@@ -573,6 +533,36 @@ def create_full_saved_workout(workout_id):
 def get_saved_workouts():
     user_id = get_jwt_identity()
     my_saved_workout_templates = SavedWorkout.query.join(WorkoutTemplate, User).filter(SavedWorkout.id == user_id).with_entities(WorkoutTemplate).all()
-    return jsonify([ jsonify_object(template, WorkoutTemplate) for template in my_saved_workout_templates])
+    return jsonify([jsonify_object(template, WorkoutTemplate) for template in my_saved_workout_templates])
 
+
+@app.route("/workout/saved/<template_id>/schedule", methods=["POST"])
+@jwt_required
+def schedule_workout(template_id):
+    user_id = get_jwt_identity()
+    req = request.get_json()
+
+    formatted_date = req['date'].replace('-', ' ')
+    formatted_date_final = datetime.strptime(formatted_date, '%Y %m %d')
+    new_schedule = Schedule(date=formatted_date_final, user_id=user_id, template_id=template_id)
+    db.session.add(new_schedule)
+    db.session.commit()
+    return {
+        "message": "success"
+    }
+
+
+@app.route("/workout/schedule")
+@jwt_required
+def get_schedule():
+    user_id = get_jwt_identity()
+    user_schedule = Schedule.query.join(WorkoutTemplate).filter(Schedule.user_id==user_id).with_entities(Schedule.date, WorkoutTemplate.name, WorkoutTemplate.id).all()
+    agenda = {}
+    for plan in user_schedule:
+        formatted_date = date_formatter(plan[0])
+        if formatted_date in agenda:
+            agenda[formatted_date] = [*agenda[formatted_date], {"name": plan[1], "id": plan[2]}]
+        else:
+            agenda[formatted_date] = [{"name": plan[1], "id": plan[2]}]
+    return jsonify(agenda)
 
