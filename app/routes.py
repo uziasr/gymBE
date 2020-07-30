@@ -524,7 +524,6 @@ def create_full_saved_workout(workout_id):
         "name": new_workout_template.name,
         "user": User.query.get(user_id).name,
         "muscles": [muscles.name for muscles in new_workout_template.muscles],
-        "muscles": [muscles.name for muscles in new_workout_template.muscles],
         "exercise_length": len(new_workout_template.saved_workout_exercise)
     }
 
@@ -565,4 +564,21 @@ def get_schedule():
         else:
             agenda[formatted_date] = [{"name": plan[1], "id": plan[2]}]
     return jsonify(agenda)
+
+@app.route("/workout/saved/today", methods=['POST'])
+@jwt_required
+def get_workout_of_the_day():
+    print("hfjhfljkadshfjk")
+    user_id = get_jwt_identity()
+    formatted_date = request.get_json()['date'].replace('-', ' ')
+    formatted_date_final = datetime.strptime(formatted_date, '%Y %m %d')
+    workout_of_the_day = Schedule.query.join(WorkoutTemplate).filter(Schedule.user_id==user_id).filter(Schedule.date==formatted_date_final).with_entities(WorkoutTemplate).all()
+    print("this is the workout of the day", workout_of_the_day)
+    return_arr = []
+    for workout in workout_of_the_day:
+        return_dict = { "name": workout.name }
+        return_dict["muscles"] = [Muscle.query.get(swm.muscle_id).name for swm in workout.muscles]            # for muscle in workout.muscles:
+        return_dict["exercises"] = [Exercise.query.get(swe.exercise_id).name for swe in workout.saved_workout_exercise]
+        return_arr.append(return_dict)
+    return jsonify(return_arr)
 
