@@ -1,4 +1,4 @@
-from app import db
+from app import db, app
 from datetime import datetime
 
 
@@ -11,7 +11,6 @@ class User(db.Model):
     schedule = db.relationship('Schedule', backref='schedule_user', lazy=True, cascade="delete")
     saved_workouts = db.relationship("SavedWorkout", backref='saved_workout_user', lazy=True, cascade="delete")
     workout_templates = db.relationship("WorkoutTemplate", backref="templates", lazy=True)
-
 
     def __repr__(self):
         return f"User('{self.id}' '{self.name}','{self.email}')"

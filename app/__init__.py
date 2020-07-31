@@ -8,10 +8,21 @@ from flask_jwt_extended import (
 )
 
 app = Flask(__name__)
-hashing = Hashing(app)
-app.config['JWT_SECRET_KEY'] = 'super-secret'  # Change this!
+
+ENV = "dev"
+
+if ENV == "dev":
+    pass
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5433/gym'
+    app.config['JWT_SECRET_KEY'] = 'super-secret'
+    app.debug = True
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = ''
+    app.debug = False
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+hashing = Hashing(app)  # Change this!
 jwt = JWTManager(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gym_pal.db'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 

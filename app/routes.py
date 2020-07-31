@@ -565,15 +565,14 @@ def get_schedule():
             agenda[formatted_date] = [{"name": plan[1], "id": plan[2]}]
     return jsonify(agenda)
 
+
 @app.route("/workout/saved/today", methods=['POST'])
 @jwt_required
 def get_workout_of_the_day():
-    print("hfjhfljkadshfjk")
     user_id = get_jwt_identity()
     formatted_date = request.get_json()['date'].replace('-', ' ')
     formatted_date_final = datetime.strptime(formatted_date, '%Y %m %d')
     workout_of_the_day = Schedule.query.join(WorkoutTemplate).filter(Schedule.user_id==user_id).filter(Schedule.date==formatted_date_final).with_entities(WorkoutTemplate).all()
-    print("this is the workout of the day", workout_of_the_day)
     return_arr = []
     for workout in workout_of_the_day:
         return_dict = { "name": workout.name }
