@@ -7,23 +7,39 @@ from flask_jwt_extended import (
     get_jwt_identity
 )
 
-app = Flask(__name__)
 
-ENV = "dev"
 
-if ENV == "dev":
-    pass
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5433/gym'
-    app.config['JWT_SECRET_KEY'] = 'super-secret'
-    app.debug = True
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = ''
-    app.debug = False
+db = SQLAlchemy()
+hashing = Hashing()  # Change this!
+jwt = JWTManager()
+migrate = Migrate()
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-hashing = Hashing(app)  # Change this!
-jwt = JWTManager(app)
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+def create_app():
+    app = Flask(__name__)
 
-from app import routes
+    ENV = "dev"
+    if ENV == "dev":
+        pass
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5433/gym'
+        app.config['JWT_SECRET_KEY'] = 'super-secret'
+        app.debug = True
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = ''
+        app.debug = False
+
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    db.init_app(app)
+    hashing.init_app(app)
+    jwt.init_app(app)
+    migrate.init_app(app=app, db=db)
+
+    from app.users.routes import user
+    app.register_blueprint(user)
+
+    return app
+
+def jsonify_object(instance, cls, remove_keys=[]):
+    return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns if i.key not in remove_keys}
+
+# from app import routes
