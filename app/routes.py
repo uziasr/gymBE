@@ -1,5 +1,5 @@
 from app import app, db, hashing
-from app.models import User, Muscle, Exercise, Workout, Sets, WorkoutMuscle, WorkoutExercise
+from app.models import *
 from flask import request, jsonify, Response
 from sqlalchemy import func
 from app import (jwt_required, create_access_token,
@@ -34,7 +34,8 @@ def get_muscles():
     muscles_list = [muscle.name for muscle in muscles]
     return " ".join(muscles_list)
 
-#START For user registration and login
+
+# START For user registration and login
 @app.route('/user/signup', methods=['POST'])
 def create_user():
     user_info = request.get_json()
@@ -83,7 +84,6 @@ def sign_in():
         return {
             "Error": "That is an incorrect password"
         }, 500
-#END
 
 
 @app.route('/user/workout', methods=['POST'])
@@ -104,6 +104,7 @@ def start_workout():
         db.session.commit()
     return {"id": new_workout.id}, 201
 
+
 @app.route('/workout/<id>/end')
 def end_workout(id):
     # id here can be the id of the user of it can be the id of the workout
@@ -123,13 +124,20 @@ def end_workout(id):
         "start_time" : current_workout.start_time,
         "end_time" : current_workout.end_time}
 
+
 @app.route('/workout/<id>/exercise', methods=['POST'])
 def add_exercise(id):
-    # exercise is coming in as a string and should be looked up in table
-    # id should either be passed through url or through json
     new_exercise = request.get_json()
-    order = len(Workout.query.get(id).workout_exercise) + 1
+    all_exercises_in_workout = WorkoutExercise.query.filter_by(workout_id=id).order_by(WorkoutExercise.order).all()
+
+    if len(all_exercises_in_workout):
+        latest_exercise = all_exercises_in_workout[-1]
+        if len(latest_exercise.sets) == 0:
+            db.session.delete(latest_exercise)
+            db.session.commit()
+
     exercise_id = Exercise.query.filter_by(name=new_exercise["exercise"]).first().id
+    order = len(Workout.query.get(id).workout_exercise) + 1
     new_workout_exercise = WorkoutExercise(workout_id=id, exercise_id=exercise_id, order=order)
     db.session.add(new_workout_exercise)
     db.session.commit()
@@ -137,6 +145,7 @@ def add_exercise(id):
         "id": new_workout_exercise.id,
         "exercise": new_exercise["exercise"],
     }, 201
+
 
 @app.route('/workout/<workout_exercise_id>/exercise', methods=['PATCH'])
 def complete_exercise(workout_exercise_id):
@@ -173,6 +182,7 @@ def manage_set(id):
         db.session.commit()
         return jsonify([jsonify_object(a_set) for a_set in WorkoutExercise.query.get(id)])
 
+
 @app.route('/workout/exercise/<id>/set/<set_id>', methods=['DELETE'])
 @jwt_required
 def delete_set(id, set_id):
@@ -189,18 +199,6 @@ def delete_set(id, set_id):
     db.session.delete(current_set)
     db.session.commit()
     return jsonify([jsonify_object(a_set, Sets) for a_set in WorkoutExercise.query.get(id).sets])
-
-@app.route('/`workout/`<id>')
-def get_workout(id):
-    #!!
-    # gets exercises by name for a give workout
-    # exercise_list = WorkoutExercise.query.get(id)
-    my_workout = WorkoutExercise.query.filter_by(workout_id=id).all()
-    my_workout.sort(key=lambda exercise: exercise.order)
-    exercise_list = [Exercise.query.get(i.exercise_id).name for i in my_workout]
-    return {
-        "exercises": exercise_list
-    }
 
 
 @app.route('/workout/<workout_id>/set')
@@ -259,25 +257,24 @@ def get_all_exercises():
     return jsonify(exercise_with_muscle)
 
 
-@app.route('/workout/<id>/exercise/<exercise_id>', methods=['DELETE'])
-def delete_exercise(id, exercise_id):
-    deleted_exercise = WorkoutExercise.query.get(exercise_id)
-    deleted_exercise_dict = jsonify_object(deleted_exercise, WorkoutExercise)
-    deleted_exercise.delete()
-    return {
-        "message": "successful",
-        "exercise": deleted_exercise_dict
-    }
-
-# @app.route('/sets/<set_id>', methods=['DELETE'])
-# def delete_set(set_id):
-#     deleted_set = Sets.query.get(set_id)
-#     delete_set_dict = jsonify_object(delete_set, Sets)
-#     deleted_set.delete()
-#     return {
-#         "message":" successful",
-#         "set": delete_set_dict
-#     }
+@app.route('/workout/exercise/<workout_exercise_id>', methods=['DELETE'])
+@jwt_required
+def delete_exercise(workout_exercise_id):
+    id = get_jwt_identity()
+    deleted_exercise = WorkoutExercise.query.get(workout_exercise_id)
+    workout = Workout.query.get(deleted_exercise.workout_id)
+    if workout.user_id == id:
+        deleted_exercise_dict = jsonify_object(deleted_exercise, WorkoutExercise)
+        db.session.delete(deleted_exercise)
+        db.session.commit()
+        return {
+            "message": "successful",
+            "exercise": deleted_exercise_dict
+        }
+    else:
+        return {
+            "error": "you cannot delete this exercise"
+        }, 204
 
 @app.route('/user/exercise')
 @jwt_required
@@ -362,19 +359,6 @@ def get_user_exercise_stats(e_id):
         "weight": weight
     }
 
-    # return jsonify({
-    #     "max_weight": jsonify_object(max_weight, Sets),
-    #     "max_reps": jsonify_object(max_rep, Sets),
-    #     "average_reps": sum_reps/count,
-    #     "average_weight": sum_weight/count,
-    #     "total_sets": count,
-    #     "projected_one_rep": {
-    #         "weight": max_one_rep_set.weight,
-    #         "reps": max_one_rep_set.repetition,
-    #         "max_weight": one_rep_max(max_one_rep_set)
-    #     }
-    # })
-
 
 @app.route('/user/workouts/date',methods=['POST'])
 @jwt_required
@@ -451,3 +435,149 @@ def get_set_in_progress():
         return {
                    "error": "there is not workout in progress"
                }, 500
+
+
+@app.route("/saved/workout", methods=['POST'])
+@jwt_required
+def create_template_workout():
+    user_id = get_jwt_identity()
+    req = request.get_json()
+    new_template = WorkoutTemplate(name=req['name'], author_id=user_id)
+    db.session.commit()
+    return jsonify_object(new_template, WorkoutTemplate), 201
+
+
+@app.route("/workout/template/<template_id>/exercise", methods=['POST', 'PATCH'])
+@jwt_required
+def add_saved_workout_exercise(template_id):
+    user_id = get_jwt_identity()
+    req = request.get_json()
+    current_template = WorkoutTemplate.query.get(template_id)
+    if current_template.author_id == user_id:
+        if request.method == 'POST':
+            exercise_id = Exercise.query.filter_by(name=req["exercise"]).first().id
+            length_of_workout = len(current_template.saved_workout_exercise)
+            SavedWorkoutExercise(template_id=template_id, exercise_id=exercise_id, order= length_of_workout + 1)
+            db.session.commit()
+            return jsonify([jsonify_object(swe, SavedWorkoutExercise) for swe in current_template.saved_workout_exercise])
+        if request.method == 'PATCH':
+            current_template.complete = True
+            SavedWorkout(template_id=template_id, user_id=user_id)
+            db.session.commit()
+            return jsonify_object(current_template, WorkoutTemplate)
+    else:
+        return {"error": "This template does not belong to you"}, 500
+
+
+
+
+@app.route("/workout/template/exercise/<saved_workout_exercise_id>", methods=['DELETE'])
+@jwt_required
+def delete_saved_workout_exercise(saved_workout_exercise_id):
+    user_id = get_jwt_identity()
+    current_swe = SavedWorkoutExercise.query.get(saved_workout_exercise_id)
+    current_workout_template = WorkoutTemplate.query.get(current_swe.template_id)
+    if user_id == current_workout_template.author_id:
+        template_length = len(current_workout_template.saved_workout_exercise)
+        for saved_we in current_workout_template[current_swe.order:]:
+            saved_we.order -= 1
+            db.session.commit()
+        db.session.delete(current_swe)
+        return jsonify([jsonify_object(swe, SavedWorkoutExercise) for swe in current_workout_template.saved_workout_exercise])
+    else:
+        return {"error":"This workout exercise is not yours to delete"}, 500
+
+
+@app.route('/saved/workout/<workout_id>', methods=['POST'])
+@jwt_required
+def create_full_saved_workout(workout_id):
+    print("hello")
+    user_id = get_jwt_identity()
+    req = request.get_json()
+
+    canvas_workout = Workout.query.get(workout_id)
+    canvas_muscles_trained = canvas_workout.muscles
+    canvas_we = canvas_workout.workout_exercise
+
+    if not len(canvas_muscles_trained) and not len(canvas_we):
+        return {
+            "error":"muscles or exercise from this workout are missing"
+        }, 500
+
+    new_workout_template = WorkoutTemplate(name=req['name'], author_id=user_id)
+    db.session.add(new_workout_template)
+    db.session.commit()
+
+    for muscle in canvas_muscles_trained:
+        db.session.add(SavedWorkoutMuscle(template_id=new_workout_template.id, muscle_id=muscle.id))
+        db.session.commit()
+    for workout_exercise in canvas_we:
+        db.session.add(SavedWorkoutExercise(exercise_id=workout_exercise.exercise_id, template_id=new_workout_template.id, order=workout_exercise.order))
+        db.session.commit()
+
+    db.session.add(SavedWorkout(user_id=user_id, workout_template_id=new_workout_template.id))
+    db.session.commit()
+
+    new_workout_template.complete = True
+    db.session.commit()
+    return {
+        "name": new_workout_template.name,
+        "user": User.query.get(user_id).name,
+        "muscles": [muscles.name for muscles in new_workout_template.muscles],
+        "exercise_length": len(new_workout_template.saved_workout_exercise)
+    }
+
+@app.route("/workout/saved")
+@jwt_required
+def get_saved_workouts():
+    user_id = get_jwt_identity()
+    my_saved_workout_templates = SavedWorkout.query.join(WorkoutTemplate, User).filter(SavedWorkout.id == user_id).with_entities(WorkoutTemplate).all()
+    return jsonify([jsonify_object(template, WorkoutTemplate) for template in my_saved_workout_templates])
+
+
+@app.route("/workout/saved/<template_id>/schedule", methods=["POST"])
+@jwt_required
+def schedule_workout(template_id):
+    user_id = get_jwt_identity()
+    req = request.get_json()
+
+    formatted_date = req['date'].replace('-', ' ')
+    formatted_date_final = datetime.strptime(formatted_date, '%Y %m %d')
+    new_schedule = Schedule(date=formatted_date_final, user_id=user_id, template_id=template_id)
+    db.session.add(new_schedule)
+    db.session.commit()
+    return {
+        "message": "success"
+    }
+
+
+@app.route("/workout/schedule")
+@jwt_required
+def get_schedule():
+    user_id = get_jwt_identity()
+    user_schedule = Schedule.query.join(WorkoutTemplate).filter(Schedule.user_id==user_id).with_entities(Schedule.date, WorkoutTemplate.name, WorkoutTemplate.id).all()
+    agenda = {}
+    for plan in user_schedule:
+        formatted_date = date_formatter(plan[0])
+        if formatted_date in agenda:
+            agenda[formatted_date] = [*agenda[formatted_date], {"name": plan[1], "id": plan[2]}]
+        else:
+            agenda[formatted_date] = [{"name": plan[1], "id": plan[2]}]
+    return jsonify(agenda)
+
+
+@app.route("/workout/saved/today", methods=['POST'])
+@jwt_required
+def get_workout_of_the_day():
+    user_id = get_jwt_identity()
+    formatted_date = request.get_json()['date'].replace('-', ' ')
+    formatted_date_final = datetime.strptime(formatted_date, '%Y %m %d')
+    workout_of_the_day = Schedule.query.join(WorkoutTemplate).filter(Schedule.user_id==user_id).filter(Schedule.date==formatted_date_final).with_entities(WorkoutTemplate).all()
+    return_arr = []
+    for workout in workout_of_the_day:
+        return_dict = { "name": workout.name }
+        return_dict["muscles"] = [Muscle.query.get(swm.muscle_id).name for swm in workout.muscles]            # for muscle in workout.muscles:
+        return_dict["exercises"] = [Exercise.query.get(swe.exercise_id).name for swe in workout.saved_workout_exercise]
+        return_arr.append(return_dict)
+    return jsonify(return_arr)
+
