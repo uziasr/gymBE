@@ -1,13 +1,13 @@
 from flask import Blueprint, request, jsonify
 from app import create_access_token, hashing, db, jsonify_object
-from app.models import User
+from app.models import *
 from datetime import datetime, timedelta
 
 user = Blueprint('user', __name__, url_prefix='/user')
 
 
 # START For user registration and login
-@user.route('/signup', methods=['POST'])
+@user.route('/register', methods=['POST'])
 def create_user():
     user_info = request.get_json()
     if "password" not in user_info or "email" not in user_info or "name" not in user_info:
@@ -31,7 +31,7 @@ def create_user():
            }, 201
 
 
-@user.route('/register', methods=["POST"])
+@user.route('/login', methods=["POST"])
 def sign_in():
     user_info = request.get_json()
     if "password" not in user_info or "email" not in user_info:
@@ -56,3 +56,6 @@ def sign_in():
             "Error": "That is an incorrect password"
         }, 500
 
+@user.route("/all")
+def get_exercises():
+    return jsonify([muscle.name for muscle in Muscle.query.all()])

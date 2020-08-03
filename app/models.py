@@ -4,9 +4,9 @@ from datetime import datetime
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(20), unique=True, nullable=False)
+    name = db.Column(db.String(120), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(60), unique=False, nullable=False)
+    password = db.Column(db.String(120), unique=False, nullable=False)
     workouts = db.relationship('Workout', backref='user', lazy=True, cascade="delete")
     schedule = db.relationship('Schedule', backref='schedule_user', lazy=True, cascade="delete")
     saved_workouts = db.relationship("SavedWorkout", backref='saved_workout_user', lazy=True, cascade="delete")

@@ -29,14 +29,13 @@ def create_app():
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+
+    from app.users.routes import user
+    app.register_blueprint(user)
     db.init_app(app)
     hashing.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app=app, db=db)
-
-    from app.users.routes import user
-    app.register_blueprint(user)
-
     return app
 
 def jsonify_object(instance, cls, remove_keys=[]):
