@@ -25,7 +25,7 @@ def start_workout():
     return {"id": new_workout.id}, 201
 
 
-@workouts.route('/workout/<int:id>/complete')
+@workouts.route('/<int:id>/complete')
 def end_workout(id):
     # id here can be the id of the user of it can be the id of the workout
     # if the former is selected, a query will need to be run to get the users workouts
@@ -45,7 +45,7 @@ def end_workout(id):
         "end_time" : current_workout.end_time}
 
 
-@workouts.route('/workout/<int:id>/exercise', methods=['POST'])
+@workouts.route('/<int:id>/exercise', methods=['POST'])
 def add_exercise(id):
     new_exercise = request.get_json()
     all_exercises_in_workout = WorkoutExercise.query.filter_by(workout_id=id).order_by(WorkoutExercise.order).all()
@@ -65,3 +65,80 @@ def add_exercise(id):
         "id": new_workout_exercise.id,
         "exercise": new_exercise["exercise"],
     }, 201
+
+
+@workouts.route('/<workout_exercise_id>/exercise', methods=['PATCH'])
+def complete_exercise(workout_exercise_id):
+    completed_exercise = WorkoutExercise.query.get(workout_exercise_id)
+    completed_exercise.completed = True
+    db.session.commit()
+    return {
+        "success": "updated successfully"
+    }, 204
+
+
+@workouts.route('/exercise/<int:id>/set', methods=['POST', 'PATCH'])
+@jwt_required
+def manage_set(id):
+    # for adding new sets and updating sets
+    user_id = get_jwt_identity()
+    req = request.get_json()
+    current_workout_exercise = WorkoutExercise.query.get(id)
+    if request.method == 'POST':
+        order = len(current_workout_exercise.sets) + 1
+        new_set = Sets(repetition=req["repetition"], set_order=order, weight=req["weight"], unit=req["unit"], workout_exercise_id=id)
+        db.session.add(new_set)
+        db.session.commit()
+        return jsonify_object(instance=new_set, cls=Sets), 201
+    elif request.method == 'PATCH':
+        current_set = Sets.query.get(req["id"])
+        current_set.repetition, current_set.weight, current_set.unit = req["repetition"], req["weight"], req["unit"]
+        db.session.commit()
+        return jsonify_object(current_set, Sets)
+
+
+@workouts.route('/exercise/<int:workout_exercise_id>/set/<int:set_id>', methods=['DELETE'])
+@jwt_required
+def delete_set(workout_exercise_id, set_id):
+    current_workout_exercise = WorkoutExercise.query.get(workout_exercise_id)
+    current_set = Sets.query.get(set_id)
+    if not current_set:
+        return {
+            "error": "this set does not exist"
+        }, 500
+    for a_set in current_workout_exercise.sets:
+        if current_set.set_order < a_set.set_order:
+            a_set.set_order -= 1
+            db.session.commit()
+    db.session.delete(current_set)
+    db.session.commit()
+    return jsonify([jsonify_object(a_set, Sets) for a_set in WorkoutExercise.query.get(workout_exercise_id).sets])
+
+
+@workouts.route('/<int:workout_id>/set')
+@jwt_required
+def get_full_workout(workout_id):
+    user_id = get_jwt_identity()
+    # where id comes from WorkoutExercise
+    workout_exercise_list = WorkoutExercise.query.filter_by(workout_id=workout_id).all()
+    if len(workout_exercise_list) == 0:
+        return {
+            "error": "this workout contains no exercises yet"
+        }, 400
+    # grab the primary key here and query sets to get all the additional info
+    complete_workout = []
+    for exercise in workout_exercise_list:
+        set_list = Sets.query.filter_by(workout_exercise_id=exercise.id).all()
+        exercise_name = Exercise.query.get(exercise.exercise_id).name
+        all_workouts_with_exercise = WorkoutExercise.query.join(Workout).filter(Workout.user_id == user_id).filter(WorkoutExercise.exercise_id == exercise.exercise_id).all()
+        exercise_sets = {
+            "exercise": exercise_name,
+            "muscle": Muscle.query.filter_by(id = Exercise.query.get(exercise.exercise_id).muscle_id).first().name,
+            "order": exercise.order,
+            "sets": [{**jsonify_object(sets, Sets), "max": one_rep_max(sets)} for sets in set_list],
+            "previous_sets": []
+        }
+        if len(all_workouts_with_exercise) > 1:
+            exercise_sets["previous_sets"] = [jsonify_object(sets, Sets) for sets in all_workouts_with_exercise[-2].sets][:len(set_list)]
+        complete_workout.append(exercise_sets)
+    return jsonify(complete_workout)

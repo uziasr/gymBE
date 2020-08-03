@@ -38,7 +38,13 @@ def create_app():
     migrate.init_app(app=app, db=db)
     return app
 
+
 def jsonify_object(instance, cls, remove_keys=[]):
     return {i.key: instance.__getattribute__(i.key) for i in cls.__table__.columns if i.key not in remove_keys}
 
-# from app import routes
+
+def one_rep_max(a_set):
+    # come back and check if the unit of weight is pounds or kilograms
+    return a_set.weight * a_set.repetition * .033 + a_set.weight
+
+
