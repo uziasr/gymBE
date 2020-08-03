@@ -35,7 +35,7 @@ def get_user_exercise_list():
                     })
 
 
-@exercises.route('/exercise/<int:e_id>')
+@exercises.route('/<int:e_id>')
 @jwt_required
 def get_user_exercise_stats(e_id):
     id = get_jwt_identity()
@@ -46,19 +46,18 @@ def get_user_exercise_stats(e_id):
     if len(all_sets_by_exercise) == 0:
         return {"error": "no information available"}, 500
 
-    sum_of_reps_by_weight = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id == id).filter(
-        WorkoutExercise.exercise_id == e_id).with_entities(func.sum(Sets.repetition), Sets.weight).group_by(
-        Sets.weight).all()
+    users_exercise_base_query = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id == id).filter(WorkoutExercise.exercise_id == e_id)
 
-    max_rep_tuple = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id== id).filter(WorkoutExercise.exercise_id==e_id)\
-        .with_entities(func.max(Sets.repetition), Sets.weight, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.weight).first()
+    sum_of_reps_by_weight = users_exercise_base_query.with_entities(func.sum(Sets.repetition), Sets.weight).group_by(Sets.weight).all()
 
-    max_weight_tuple = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
-        .with_entities(func.max(Sets.weight), Sets.repetition, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.repetition).first()
+    max_rep_tuple = users_exercise_base_query.with_entities(func.max(Sets.repetition), Sets.weight, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit)\
+        .group_by(Sets.weight, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.weight.desc()).first()
+
+    max_weight_tuple = users_exercise_base_query.with_entities(func.max(Sets.weight), Sets.repetition, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit)\
+        .group_by(Sets.repetition, Workout.start_time, WorkoutExercise.order, Sets.set_order, Sets.unit).order_by(Sets.repetition.desc()).first()
 
     # tuple consisting of average weight, average reps, total reps, total weights
-    aw_ar_tr_tw = Sets.query.join(WorkoutExercise, Workout).filter(Workout.user_id==id).filter(WorkoutExercise.exercise_id==e_id)\
-        .with_entities(func.avg(Sets.weight), func.avg(Sets.repetition), func.sum(Sets.repetition), func.sum(Sets.weight)).first()
+    aw_ar_tr_tw = users_exercise_base_query.with_entities(func.avg(Sets.weight), func.avg(Sets.repetition), func.sum(Sets.repetition), func.sum(Sets.weight)).first()
 
     max_one_rep_set = all_sets_by_exercise[0]
     reps = []
@@ -71,25 +70,26 @@ def get_user_exercise_stats(e_id):
     for current_set in all_sets_by_exercise:
         if one_rep_max(current_set) >= one_rep_max(max_one_rep_set):
             max_one_rep_set = current_set
-    return {
+
+    stats = {
         "max_weight": {
-            "weight": max_weight_tuple[0],
-            "repetition": max_weight_tuple[1],
-            "date": date_formatter(max_weight_tuple[2]),
-            "exercise_order": max_weight_tuple[3],
-            "set_order": max_weight_tuple[4],
-            "unit": max_weight_tuple[5]
+                    "weight": max_weight_tuple[0],
+                    "repetition": max_weight_tuple[1],
+                    "date": date_formatter(max_weight_tuple[2]),
+                    "exercise_order": max_weight_tuple[3],
+                    "set_order": max_weight_tuple[4],
+                    "unit": max_weight_tuple[5]
         },
         "max_reps": {
-            "repetition": max_rep_tuple[0],
-            "weight": max_rep_tuple[1],
-            "date": date_formatter(max_rep_tuple[2]),
-            "exercise_order": max_rep_tuple[3],
-            "set_order": max_rep_tuple[4],
-            "unit": max_rep_tuple[5]
-        },
-        "average_weight": aw_ar_tr_tw[0],
-        "average_reps": aw_ar_tr_tw[1],
+                    "repetition": max_rep_tuple[0],
+                    "weight": max_rep_tuple[1],
+                    "date": date_formatter(max_rep_tuple[2]),
+                    "exercise_order": max_rep_tuple[3],
+                    "set_order": max_rep_tuple[4],
+                    "unit": max_rep_tuple[5]
+                },
+        "average_weight": float(aw_ar_tr_tw[0]),
+        "average_reps": float(aw_ar_tr_tw[1]),
         "total_sets": aw_ar_tr_tw[2],
         "total_weight": aw_ar_tr_tw[3],
         "projected_one_rep": {
@@ -101,5 +101,8 @@ def get_user_exercise_stats(e_id):
         "reps": reps,
         "weight": weight
     }
+
+    return stats
+
 
 

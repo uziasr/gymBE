@@ -7,16 +7,17 @@ from app.utils import jsonify_object, one_rep_max, date_formatter
 saved = Blueprint('saved', __name__, url_prefix='/saved')
 
 
-@saved.route("/workout", methods=['POST'])
+@saved.route("/workout", methods=['POST', 'GET'])
 @jwt_required
 def manage_template_workout():
+    user_id = get_jwt_identity()
     if request.method == "POST":
         user_id = get_jwt_identity()
         req = request.get_json()
         new_template = WorkoutTemplate(name=req['name'], author_id=user_id)
         db.session.commit()
         return jsonify_object(new_template, WorkoutTemplate), 201
-    else:
+    elif request.method == "GET":
         my_saved_workout_templates = SavedWorkout.query.join(WorkoutTemplate, User).filter(SavedWorkout.id == user_id).with_entities(WorkoutTemplate).all()
         return jsonify([jsonify_object(template, WorkoutTemplate) for template in my_saved_workout_templates])
 
@@ -99,7 +100,7 @@ def create_full_saved_workout(workout_id):
     return {
         "name": new_workout_template.name,
         "user": User.query.get(user_id).name,
-        "muscles": [muscles.name for muscles in new_workout_template.muscles],
+        # "muscles": [muscles.name for muscles in new_workout_template.muscles],
         "exercise_length": len(new_workout_template.saved_workout_exercise)
     }
 
