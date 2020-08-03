@@ -6,7 +6,7 @@ from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity
 )
-
+from app.config import Config
 
 
 db = SQLAlchemy()
@@ -16,19 +16,8 @@ migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-
-    ENV = "dev"
-    if ENV == "dev":
-        pass
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5433/gym'
-        app.config['JWT_SECRET_KEY'] = 'super-secret'
-        app.debug = True
-    else:
-        app.config['SQLALCHEMY_DATABASE_URI'] = ''
-        app.debug = False
-
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+    app.config.from_object(Config)
+    # app.debug = True
 
     from app.users.routes import user
     from app.workouts.routes import workouts
@@ -44,6 +33,10 @@ def create_app():
     hashing.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app=app, db=db)
+
+    # with app.app_context():
+    #     db.create_all()
+
     return app
 
 

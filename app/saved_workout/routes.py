@@ -22,7 +22,6 @@ def manage_template_workout():
         return jsonify([jsonify_object(template, WorkoutTemplate) for template in my_saved_workout_templates])
 
 
-
 @saved.route("/workout/template/<template_id>/exercise", methods=['POST', 'PATCH'])
 @jwt_required
 def add_saved_workout_exercise(template_id):
