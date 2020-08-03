@@ -31,7 +31,15 @@ def create_app():
 
 
     from app.users.routes import user
+    from app.workouts.routes import workouts
+    from app.saved_workout.routes import saved
+    from app.exercises.routes import exercises
+
     app.register_blueprint(user)
+    app.register_blueprint(workouts)
+    app.register_blueprint(saved)
+    app.register_blueprint(exercises)
+
     db.init_app(app)
     hashing.init_app(app)
     jwt.init_app(app)

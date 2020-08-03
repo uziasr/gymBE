@@ -8,7 +8,7 @@ from app.utils import jsonify_object, one_rep_max, date_formatter
 exercises = Blueprint('exercises', __name__, url_prefix='/exercise')
 
 
-@exercises.route('/')
+@exercises.route('')
 def get_all_exercises():
     all_exercises = Exercise.query.all()
     exercise_with_muscle = []

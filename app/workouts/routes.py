@@ -7,7 +7,7 @@ from app.utils import jsonify_object, one_rep_max, date_formatter
 workouts = Blueprint('workouts', __name__, url_prefix='/workout')
 
 
-@workouts.route('/', methods=['POST'])
+@workouts.route('', methods=['POST'])
 @jwt_required
 def start_workout():
     # id will belong to the user
@@ -194,4 +194,63 @@ def get_workout_by_date():
                                  "muscles": (f"{a_workout.muscles}"[1:-1]).split(',')
                                  })
     return jsonify(all_workouts_by_date)
+
+
+@workouts.route('/all')
+@jwt_required
+def get_all_workouts():
+    user_id = get_jwt_identity()
+    my_workouts = Workout.query.filter_by(user_id=user_id).filter(Workout.end_time!=None).all()
+    return jsonify([jsonify_object(workout, Workout) for workout in my_workouts])
+
+
+# @workouts.route('/workouts/<id>')
+# def get_users_workout_by_id(id):
+#     workout_dict = {}
+#     for index, exercise in enumerate(Workout.query.get(2).workout_exercise):
+#         current_exercise = Exercise.query.get(WorkoutExercise.exercise_id).name
+#         if current_exercise not in workout_dict:
+#             workout_dict[current_exercise] = [jsonify_object(current_set, Sets) for current_set in exercise.sets]
+#         else:
+#             workout_dict[f"{current_exercise}-{index}"] = [jsonify_object(current_set, Sets) for current_set in exercise.sets]
+#
+#     return jsonify(workout_dict)
+
+
+@workouts.route("/startup")
+@jwt_required
+def get_workout_in_progress():
+    user_id = get_jwt_identity()
+    latest_user_workout = Workout.query.filter_by(user_id=user_id).order_by(Workout.id.desc()).first()
+    if latest_user_workout and latest_user_workout.end_time is None: #existing workout
+        return jsonify_object(latest_user_workout, Workout), 200
+    else:
+        return {
+            "error": "there is not workout in progress"
+        }, 500
+
+
+@workouts.route("/set/startup")
+@jwt_required
+def get_set_in_progress():
+    user_id = get_jwt_identity()
+    latest_user_workout = Workout.query.filter_by(user_id=user_id).order_by(Workout.id.desc()).first()
+    if latest_user_workout and latest_user_workout.end_time is None:  # existing workout
+        current_workout_exercise = WorkoutExercise.query.filter_by(workout_id=latest_user_workout.id).order_by(WorkoutExercise.order.desc()).first()
+        if current_workout_exercise is None or current_workout_exercise.completed:
+            return {
+                "error": "there is no workout in progress"
+            }, 500
+        else:
+            current_exercise = Exercise.query.get(current_workout_exercise.exercise_id).name
+            return {
+                current_exercise : [jsonify_object(a_set, Sets) for a_set in current_workout_exercise.sets],
+                "current_exercise" : current_exercise,
+                "workout_exercise_id" : current_workout_exercise.id
+            }, 200
+    else:
+        return {
+                   "error": "there is not workout in progress"
+               }, 500
+
 

@@ -55,7 +55,3 @@ def sign_in():
         return {
             "Error": "That is an incorrect password"
         }, 500
-
-@user.route("/all")
-def get_exercises():
-    return jsonify([muscle.name for muscle in Muscle.query.all()])
