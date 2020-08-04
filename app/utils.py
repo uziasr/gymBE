@@ -4,7 +4,10 @@ def jsonify_object(instance, cls, remove_keys=[]):
 
 def one_rep_max(a_set):
     # come back and check if the unit of weight is pounds or kilograms
-    return a_set.weight * a_set.repetition * .033 + a_set.weight
+    if a_set.unit == "pound":
+        return a_set.weight * a_set.repetition * .033 + a_set.weight
+    else:
+        return a_set.weight * a_set.repetition * .033 + a_set.weight
 
 
 def date_formatter(date):

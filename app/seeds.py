@@ -58,5 +58,6 @@ def seed_exercises():
         db.session.add(Exercise(name=exercise[0], muscle_id=exercise[1]))
         db.session.commit()
 
+
 seed_muscles()
 seed_exercises()

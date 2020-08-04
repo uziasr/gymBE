@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify
-from app import create_access_token, hashing, db, jsonify_object
+from app import create_access_token, hashing, db
 from app.models import *
 from datetime import datetime, timedelta
+from app.utils import jsonify_object
+
 
 user = Blueprint('user', __name__, url_prefix='/user')
 
