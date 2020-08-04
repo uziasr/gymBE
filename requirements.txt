@@ -2,6 +2,7 @@ alembic==1.4.2
 click==7.1.2
 Flask==1.1.2
 Flask-Hashing==1.1
+flask-heroku==0.1.9
 Flask-JWT-Extended==3.24.1
 Flask-Migrate==2.5.3
 Flask-SQLAlchemy==2.4.1

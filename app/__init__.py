@@ -7,6 +7,7 @@ from flask_jwt_extended import (
     get_jwt_identity
 )
 from app.config import Config
+from flask_heroku import Heroku
 
 
 db = SQLAlchemy()
@@ -16,7 +17,10 @@ migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config)
+    configuration = Config()
+    if configuration.DEBUG:
+        app.config.from_object(Config)
+    heroku = Heroku(app)
     # app.debug = True
 
     from app.users.routes import user
@@ -34,8 +38,8 @@ def create_app():
     jwt.init_app(app)
     migrate.init_app(app=app, db=db)
 
-    # with app.app_context():
-    #     db.create_all()
+    with app.app_context():
+        db.create_all()
 
     return app
 
