@@ -17,11 +17,12 @@ migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-    # configuration = Config()
-    # if configuration.DEBUG:
-    app.config.from_object(Config)
+    configuration = Config()
+    if configuration.DEBUG:
+        app.config.from_object(configuration)
     heroku = Heroku(app)
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = configuration.JWT_SECRET_KEY
 
     # app.debug = True
 
