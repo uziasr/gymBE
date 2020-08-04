@@ -31,7 +31,7 @@ push_exercises = [
 
 pull_exercises = [
     ('Barbell Bent Over Row', 5), ('Dumbbell Single Arm Row', 5), ('Barbell Bent Over Row Underhand', 5), ('Seated Cable Row', 5),
-    ('Pull ups', 5), ('lat Pulldown', 5), ('Incline Dumbbell Row', 5), ('Chin Ups', 5), ('Inverted Row', 5), ('T-bar Row', 5),
+    ('Pull ups', 5), ('Lat Pulldown', 5), ('Incline Dumbbell Row', 5), ('Chin Ups', 5), ('Inverted Row', 5), ('T-bar Row', 5),
     ('Back Extensions', 5), ('Rack Pulls', 5),
     ('Standing Barbell Curl', 8), ('Concentration Curl', 8), ('Standing Dumbbell Curl', 8), ('Hammer Curl', 8),
     ('Decline Dumbbell Curl', 8), ('Incline Dumbbell Curl', 8), ('Cable Bicep Curl', 8),  ('Preacher Curl', 8),  ('Machine Curl', 8),
@@ -57,6 +57,7 @@ def seed_exercises():
     for exercise in master_exercises:
         db.session.add(Exercise(name=exercise[0], muscle_id=exercise[1]))
         db.session.commit()
+
 
 seed_muscles()
 seed_exercises()

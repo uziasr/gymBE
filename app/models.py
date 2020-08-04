@@ -1,12 +1,12 @@
-from app import db, app
+from app import db
 from datetime import datetime
 
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(20), unique=True, nullable=False)
+    name = db.Column(db.String(120), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(60), unique=False, nullable=False)
+    password = db.Column(db.String(120), unique=False, nullable=False)
     workouts = db.relationship('Workout', backref='user', lazy=True, cascade="delete")
     schedule = db.relationship('Schedule', backref='schedule_user', lazy=True, cascade="delete")
     saved_workouts = db.relationship("SavedWorkout", backref='saved_workout_user', lazy=True, cascade="delete")
@@ -121,7 +121,7 @@ class SavedWorkoutMuscle(db.Model):
 
 class WorkoutTemplate(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
-    name = db.Column(db.String(15), nullable=False)
+    name = db.Column(db.String(50), nullable=False)
     complete = db.Column(db.Boolean, default=False, nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     schedule = db.relationship("Schedule", backref="saved_workout", lazy=True, cascade="delete")

@@ -6,24 +6,44 @@ from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity
 )
+from app.config import Config
+from flask_heroku import Heroku
 
-app = Flask(__name__)
 
-ENV = "dev"
+db = SQLAlchemy()
+hashing = Hashing()  # Change this!
+jwt = JWTManager()
+migrate = Migrate()
 
-if ENV == "dev":
-    pass
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:1234@localhost:5433/gym'
-    app.config['JWT_SECRET_KEY'] = 'super-secret'
-    app.debug = True
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = ''
-    app.debug = False
+def create_app():
+    app = Flask(__name__)
+    configuration = Config()
+    if configuration.DEBUG:
+        app.config.from_object(configuration)
+    heroku = Heroku(app)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = configuration.JWT_SECRET_KEY
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-hashing = Hashing(app)  # Change this!
-jwt = JWTManager(app)
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+    # app.debug = True
 
-from app import routes
+    from app.users.routes import user
+    from app.workouts.routes import workouts
+    from app.saved_workout.routes import saved
+    from app.exercises.routes import exercises
+
+    app.register_blueprint(user)
+    app.register_blueprint(workouts)
+    app.register_blueprint(saved)
+    app.register_blueprint(exercises)
+
+    db.init_app(app)
+    hashing.init_app(app)
+    jwt.init_app(app)
+    migrate.init_app(app=app, db=db)
+
+    with app.app_context():
+        db.create_all()
+
+    return app
+
+
