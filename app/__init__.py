@@ -17,10 +17,12 @@ migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-    configuration = Config()
-    if configuration.DEBUG:
-        app.config.from_object(Config)
+    # configuration = Config()
+    # if configuration.DEBUG:
+    app.config.from_object(Config)
     heroku = Heroku(app)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
     # app.debug = True
 
     from app.users.routes import user
