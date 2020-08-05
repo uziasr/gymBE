@@ -12,16 +12,26 @@ workouts = Blueprint('workouts', __name__, url_prefix='/workout')
 def start_workout():
     # id will belong to the user
     id = get_jwt_identity()
-    new_workout = Workout(user_id=id)
+    req = request.get_json()
+    print("this is req", req)
+    if "template_id" in req:
+        new_workout = Workout(user_id=id, template_id=req["template_id"])
+    else:
+        new_workout = Workout(user_id=id)
     db.session.add(new_workout)
     db.session.commit()
     # for now, support only explicit muscles and not muscle groups
-    muscles_getting_trained = request.get_json()["muscles"]
+    muscles_getting_trained = req["muscles"]
     if new_workout.id:
         for muscle in muscles_getting_trained:
             current_muscle = Muscle.query.filter_by(name=muscle).first()
             new_wm = WorkoutMuscle(workout_id=new_workout.id, muscle_group_id=current_muscle.id)
             db.session.add(new_wm)
+        db.session.commit()
+    if "exercise" in req:
+        exercise_id = Exercise.query.filter_by(name=req["exercise"]).first().id
+        new_workout_exercise = WorkoutExercise(workout_id=new_workout.id, exercise_id=exercise_id, order=1)
+        db.session.add(new_workout_exercise)
         db.session.commit()
     return {"id": new_workout.id}, 201
 

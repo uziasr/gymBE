@@ -18,7 +18,8 @@ def manage_template_workout():
         db.session.commit()
         return jsonify_object(new_template, WorkoutTemplate), 201
     elif request.method == "GET":
-        my_saved_workout_templates = SavedWorkout.query.join(WorkoutTemplate, User).filter(SavedWorkout.id == user_id).with_entities(WorkoutTemplate).all()
+        my_saved_workout_templates = SavedWorkout.query.join(WorkoutTemplate, User).filter(SavedWorkout.user_id == user_id).with_entities(WorkoutTemplate).all()
+        print(my_saved_workout_templates)
         return jsonify([jsonify_object(template, WorkoutTemplate) for template in my_saved_workout_templates])
 
 
@@ -66,8 +67,6 @@ def delete_saved_workout_exercise(saved_workout_exercise_id):
 @saved.route('/workout/<workout_id>', methods=['POST'])
 @jwt_required
 def create_full_saved_workout(workout_id):
-    # currently not used
-    print("hello")
     user_id = get_jwt_identity()
     req = request.get_json()
 
@@ -144,7 +143,7 @@ def get_workout_of_the_day():
     workout_of_the_day = Schedule.query.join(WorkoutTemplate).filter(Schedule.user_id==user_id).filter(Schedule.date==formatted_date_final).with_entities(WorkoutTemplate).all()
     return_arr = []
     for workout in workout_of_the_day:
-        return_dict = { "name": workout.name }
+        return_dict = { "name": workout.name, "template_id": workout.id }
         return_dict["muscles"] = [Muscle.query.get(swm.muscle_id).name for swm in workout.muscles]            # for muscle in workout.muscles:
         return_dict["exercises"] = [Exercise.query.get(swe.exercise_id).name for swe in workout.saved_workout_exercise]
         return_arr.append(return_dict)
