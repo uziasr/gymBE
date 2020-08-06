@@ -233,7 +233,11 @@ def get_workout_in_progress():
     user_id = get_jwt_identity()
     latest_user_workout = Workout.query.filter_by(user_id=user_id).order_by(Workout.id.desc()).first()
     if latest_user_workout and latest_user_workout.end_time is None: #existing workout
-        return jsonify_object(latest_user_workout, Workout), 200
+        if latest_user_workout.template_id is not None:
+            current_template = WorkoutTemplate.query.get(latest_user_workout.template_id)
+            return {**jsonify_object(latest_user_workout, Workout), "exercises": [Exercise.query.get(swe.exercise_id).name for swe in current_template.saved_workout_exercise]}, 200
+        else:
+            return jsonify_object(latest_user_workout, Workout), 200
     else:
         return {
             "error": "there is not workout in progress"
