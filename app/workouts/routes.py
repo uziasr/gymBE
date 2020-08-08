@@ -33,7 +33,13 @@ def start_workout():
         new_workout_exercise = WorkoutExercise(workout_id=new_workout.id, exercise_id=exercise_id, order=1)
         db.session.add(new_workout_exercise)
         db.session.commit()
-    return {"id": new_workout.id}, 201
+        return {
+                   "id": new_workout.id,
+                    "workout_exercise_id": new_workout_exercise.id,
+                    "exercise": req["exercise"]
+                }, 201
+    else:
+        return {"id": new_workout.id}, 201
 
 
 @workouts.route('/<int:id>/complete')
