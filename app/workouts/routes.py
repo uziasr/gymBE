@@ -12,18 +12,34 @@ workouts = Blueprint('workouts', __name__, url_prefix='/workout')
 def start_workout():
     # id will belong to the user
     id = get_jwt_identity()
-    new_workout = Workout(user_id=id)
+    req = request.get_json()
+    print("this is req", req)
+    if "template_id" in req:
+        new_workout = Workout(user_id=id, template_id=req["template_id"])
+    else:
+        new_workout = Workout(user_id=id)
     db.session.add(new_workout)
     db.session.commit()
     # for now, support only explicit muscles and not muscle groups
-    muscles_getting_trained = request.get_json()["muscles"]
+    muscles_getting_trained = req["muscles"]
     if new_workout.id:
         for muscle in muscles_getting_trained:
             current_muscle = Muscle.query.filter_by(name=muscle).first()
             new_wm = WorkoutMuscle(workout_id=new_workout.id, muscle_group_id=current_muscle.id)
             db.session.add(new_wm)
         db.session.commit()
-    return {"id": new_workout.id}, 201
+    if "exercise" in req:
+        exercise_id = Exercise.query.filter_by(name=req["exercise"]).first().id
+        new_workout_exercise = WorkoutExercise(workout_id=new_workout.id, exercise_id=exercise_id, order=1)
+        db.session.add(new_workout_exercise)
+        db.session.commit()
+        return {
+                   "id": new_workout.id,
+                    "workout_exercise_id": new_workout_exercise.id,
+                    "exercise": req["exercise"]
+                }, 201
+    else:
+        return {"id": new_workout.id}, 201
 
 
 @workouts.route('/<int:id>/complete')
@@ -223,7 +239,11 @@ def get_workout_in_progress():
     user_id = get_jwt_identity()
     latest_user_workout = Workout.query.filter_by(user_id=user_id).order_by(Workout.id.desc()).first()
     if latest_user_workout and latest_user_workout.end_time is None: #existing workout
-        return jsonify_object(latest_user_workout, Workout), 200
+        if latest_user_workout.template_id is not None:
+            current_template = WorkoutTemplate.query.get(latest_user_workout.template_id)
+            return {**jsonify_object(latest_user_workout, Workout), "exercises": [Exercise.query.get(swe.exercise_id).name for swe in current_template.saved_workout_exercise]}, 200
+        else:
+            return jsonify_object(latest_user_workout, Workout), 200
     else:
         return {
             "error": "there is not workout in progress"
